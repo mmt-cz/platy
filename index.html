@@ -1,0 +1,1585 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Platová politika ČR: interaktivní model tarifů státních zaměstnanců, minimální mzdy, veřejných příjmů a dopadu na HDP.">
+  <title>Platová politika ČR: státní zaměstnanci a minimální mzda</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #15202b;
+      --muted: #62707d;
+      --line: #ccd3d8;
+      --line-dark: #9aa6af;
+      --paper: #ffffff;
+      --canvas: #edf0f1;
+      --panel: #f6f7f7;
+      --navy: #163a59;
+      --navy-2: #0d2b44;
+      --green: #1f6a4f;
+      --green-soft: #e6f0eb;
+      --amber: #8a5a12;
+      --amber-soft: #f7eddc;
+      --focus: #0b66c3;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: var(--sans);
+      font-size: 13px;
+      line-height: 1.35;
+      font-variant-numeric: tabular-nums;
+    }
+
+    button, input { font: inherit; }
+
+    button { color: inherit; }
+
+    a { color: var(--navy); text-underline-offset: 2px; }
+
+    a:hover { color: #0061a7; }
+
+    button:focus-visible, input:focus-visible, a:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .first-screen {
+      min-height: 0;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 8px 14px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .overview {
+      display: grid;
+      grid-template-columns: minmax(225px, .9fr) minmax(205px, .8fr) minmax(165px, .62fr) minmax(340px, 1.35fr);
+      gap: 8px;
+      min-height: 78px;
+    }
+
+    .overview-cell {
+      min-width: 0;
+      padding: 9px 12px;
+    }
+
+    .tool-title { padding-left: 2px; }
+
+    .tool-title h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.1;
+      letter-spacing: -.02em;
+    }
+
+    .tool-title .author-link {
+      display: inline-block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .tool-title .author-link:hover { color: var(--navy); text-decoration: underline; }
+
+    .metric-label, .field-label {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      display: block;
+      overflow: hidden;
+      color: var(--navy-2);
+      font-family: var(--mono);
+      font-size: clamp(21px, 2vw, 30px);
+      line-height: 1.15;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .055em;
+      text-transform: uppercase;
+    }
+
+    .policy-metric { border-radius: 4px; background: var(--amber-soft); }
+    .policy-metric strong { color: var(--amber); }
+
+    .gdp-metric { border-radius: 4px; background: #e7eef3; }
+    .gdp-metric strong { color: var(--navy); }
+
+    .scenario {
+      display: grid;
+      grid-template-columns: 127px minmax(180px, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding-right: 2px;
+    }
+
+    .repair-button {
+      width: 100%;
+      height: 31px;
+      padding: 0 7px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--line-dark);
+      border-radius: 2px;
+      background: var(--paper);
+      cursor: pointer;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    .repair-button[aria-checked="true"] {
+      color: #143d2f;
+      border-color: #4c8a70;
+      background: var(--green-soft);
+    }
+
+    .switch-track {
+      width: 29px;
+      height: 16px;
+      padding: 2px;
+      border-radius: 12px;
+      background: #8b969e;
+      transition: background .15s ease;
+    }
+
+    .switch-knob {
+      display: block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform .15s ease;
+    }
+
+    .repair-button[aria-checked="true"] .switch-track { background: var(--green); }
+    .repair-button[aria-checked="true"] .switch-knob { transform: translateX(13px); }
+
+    .slider-line {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .slider-line output {
+      min-width: 77px;
+      color: var(--navy-2);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 18px;
+      margin: 0;
+      accent-color: var(--green);
+      cursor: pointer;
+    }
+
+    .table-selector {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 3px;
+      padding: 3px;
+      border-radius: 4px;
+      background: #e9edef;
+    }
+
+    .table-selector button {
+      min-width: 0;
+      height: 36px;
+      padding: 4px 8px;
+      border: 0;
+      border-radius: 3px;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .table-selector button:hover { background: #f0f3f5; }
+
+    .table-selector button.selected {
+      color: #fff;
+      background: var(--navy);
+      box-shadow: inset 0 -3px 0 #62a58a;
+    }
+
+    .selector-name {
+      display: block;
+      overflow: hidden;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .workspace-grid {
+      display: block;
+    }
+
+    .matrix-shell {
+      min-width: 0;
+      background: var(--paper);
+    }
+
+    .matrix-toolbar {
+      min-height: 48px;
+      padding: 6px 8px 6px 10px;
+      display: grid;
+      grid-template-columns: minmax(250px, 1fr) auto auto;
+      gap: 16px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      background: #fafbfb;
+    }
+
+    .matrix-ident { min-width: 0; }
+
+    .matrix-ident h2 {
+      display: block;
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -.02em;
+    }
+
+    .matrix-ident p {
+      margin: 2px 0 0;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 9.5px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .mode-control {
+      display: flex;
+      border: 1px solid var(--line-dark);
+      border-radius: 2px;
+      background: #fff;
+    }
+
+    .mode-control button {
+      height: 27px;
+      padding: 0 12px;
+      border: 0;
+      border-right: 1px solid var(--line);
+      background: transparent;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .mode-control button:last-child { border-right: 0; }
+
+    .mode-control button.active {
+      color: #fff;
+      background: var(--navy);
+    }
+
+    .matrix-count {
+      min-width: 126px;
+      text-align: right;
+    }
+
+    .matrix-count span {
+      color: var(--muted);
+      font-size: 9px;
+      text-transform: uppercase;
+    }
+
+    .matrix-count strong {
+      margin-left: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .audit-line {
+      min-height: 23px;
+      padding: 3px 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      background: #fbfbfb;
+      font-size: 9px;
+      white-space: nowrap;
+    }
+
+    .audit-line > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .audit-line a { font-weight: 700; }
+
+    .matrix-viewport { overflow: visible; }
+
+    .matrix-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .matrix-subtable-title {
+      margin: 0 0 4px;
+      color: var(--navy-2);
+      font-size: 14px;
+      line-height: 1.1;
+    }
+
+    .salary-table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 10.5px;
+    }
+
+    .salary-table th, .salary-table td {
+      height: 23px;
+      padding: 2px 4px;
+      overflow: hidden;
+      border-right: 1px solid #dde2e5;
+      border-bottom: 1px solid #dde2e5;
+      text-align: right;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .salary-table th:last-child, .salary-table td:last-child { border-right: 0; }
+
+    .salary-table thead th {
+      height: 27px;
+      padding: 2px 4px;
+      vertical-align: middle;
+      color: #40505d;
+      background: #e9edef;
+      font-size: 9.5px;
+      font-weight: 700;
+    }
+
+    .salary-table thead .subtable-heading {
+      height: 24px;
+      color: #fff;
+      background: #405565;
+      font-family: var(--sans);
+      font-size: 8.5px;
+      letter-spacing: .045em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .salary-table .group-start {
+      border-left: 2px solid #7d8b95;
+    }
+
+    .salary-table.military-group thead th:not(.row-label):not(.subtable-heading) {
+      height: 40px;
+      padding: 2px;
+      font-size: 6.8px;
+      line-height: 1.05;
+      text-align: center;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .salary-table.grouped-table .row-label { width: 96px; }
+
+    .salary-table .row-label {
+      width: 110px;
+      overflow: hidden;
+      color: #344553;
+      background: #f2f4f5;
+      font-family: var(--sans);
+      font-size: 9.5px;
+      font-weight: 600;
+      text-align: left;
+      text-overflow: ellipsis;
+    }
+
+    .salary-table .row-index {
+      display: inline-block;
+      width: 17px;
+      color: #7a8790;
+      font-family: var(--mono);
+      font-size: 8.5px;
+    }
+
+    .salary-table tbody tr:nth-child(even) td { background: #fafbfb; }
+    .salary-table tbody tr:hover td { background: #eef4f6; }
+
+    .salary-table td.adjusted {
+      color: #174a37;
+      background: #edf5f1;
+      font-weight: 700;
+    }
+
+    .salary-table tbody tr:nth-child(even) td.adjusted { background: #e7f1ec; }
+
+    .salary-table td.profession-target {
+      box-shadow: inset 0 0 0 2px #b27a1f;
+      height: 62px;
+      padding: 4px;
+      color: #68470d;
+      background: #fff4d8;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .profession-cell-name {
+      display: block;
+      color: #68470d;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 850;
+      line-height: .98;
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+
+    .profession-cell-name.compact { font-size: 11px; line-height: 1.02; }
+
+    .profession-cell-value {
+      display: block;
+      margin-top: 4px;
+      color: #174a37;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      line-height: 1.1;
+    }
+
+    .salary-table tbody tr:nth-child(even) td.profession-target { background: #fff0c7; }
+    .salary-table td.adjusted.profession-target {
+      box-shadow: inset 0 0 0 2px #b27a1f;
+      background: #fff0c7;
+    }
+
+    .salary-table td.profession-target input {
+      display: block;
+      margin-top: 2px;
+    }
+
+    .salary-table td input {
+      width: 100%;
+      height: 19px;
+      padding: 0 2px;
+      border: 1px solid transparent;
+      border-radius: 1px;
+      color: var(--ink);
+      background: transparent;
+      font-family: var(--mono);
+      font-size: 10px;
+      text-align: right;
+      -moz-appearance: textfield;
+    }
+
+    .salary-table td input::-webkit-outer-spin-button,
+    .salary-table td input::-webkit-inner-spin-button { margin: 0; -webkit-appearance: none; }
+
+    .salary-table td input:hover { border-color: #b6c1c9; background: #fff; }
+    .salary-table td input:focus { border-color: var(--focus); background: #fff; outline: 0; }
+
+    .salary-table tfoot th, .salary-table tfoot td {
+      height: 26px;
+      border-bottom: 0;
+      color: #263744;
+      background: #e4e9ec;
+      font-size: 8.5px;
+      font-weight: 700;
+    }
+
+    .salary-table tfoot .row-label { background: #dae1e5; }
+
+    .matrix-foot {
+      min-height: 26px;
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      background: #f7f8f8;
+      font-size: 9px;
+    }
+
+    .matrix-foot p {
+      margin: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .quiet-button {
+      flex: none;
+      height: 20px;
+      padding: 0 7px;
+      border: 1px solid var(--line-dark);
+      border-radius: 2px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 8.5px;
+      font-weight: 700;
+    }
+
+    .details {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 6px 14px 48px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      align-items: start;
+    }
+
+    .detail-card {
+      border: 1px solid var(--line-dark);
+      background: var(--paper);
+    }
+
+    .detail-card > header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #f2f4f5;
+    }
+
+    .detail-card h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .detail-card header p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 10.5px;
+    }
+
+    .fiscal-panel {
+      margin-bottom: 6px;
+      border: 1px solid var(--line-dark);
+      background: var(--paper);
+    }
+
+    .fiscal-summary {
+      min-height: 56px;
+      padding: 8px 11px;
+      cursor: pointer;
+      background: #f2f4f5;
+    }
+
+    .fiscal-summary-grid {
+      width: calc(100% - 18px);
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      vertical-align: middle;
+    }
+
+    .fiscal-panel[open] .fiscal-summary { border-bottom: 1px solid var(--line); }
+    .fiscal-heading { display: block; }
+    .fiscal-title { display: block; font-size: 15px; font-weight: 750; }
+    .fiscal-heading small { display: block; margin-top: 2px; color: var(--muted); font-size: 9.5px; font-weight: 400; }
+
+    .fiscal-total { flex: none; text-align: right; }
+    .fiscal-total span { display: block; color: var(--muted); font-size: 8px; font-weight: 700; text-transform: uppercase; }
+    .fiscal-total strong { display: block; margin-top: 2px; color: var(--green); font-family: var(--mono); font-size: 16px; }
+    .fiscal-total small { display: block; margin-top: 1px; color: var(--muted); font-size: 8px; }
+
+    .fiscal-assumptions {
+      min-height: 40px;
+      padding: 6px 9px;
+      display: grid;
+      grid-template-columns: minmax(300px, 1fr) auto auto auto auto auto;
+      align-items: center;
+      gap: 7px;
+      border-bottom: 1px solid var(--line);
+      background: #fafbfb;
+    }
+
+    .consumption-control,
+    .private-effect-control {
+      min-width: 0;
+      width: 524px;
+      max-width: 100%;
+      display: grid;
+      grid-template-columns: 230px 240px 38px;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .consumption-control output,
+    .private-effect-control output { color: var(--navy); font-family: var(--mono); font-size: 10px; text-align: right; }
+    .private-effect-control.disabled { opacity: .45; }
+
+    .rate-chip {
+      padding: 4px 6px;
+      border: 1px solid #d1d8dc;
+      border-radius: 2px;
+      color: #4e5c67;
+      background: #fff;
+      font-family: var(--mono);
+      font-size: 8px;
+      white-space: nowrap;
+    }
+
+    .private-wage-module {
+      padding: 9px;
+      display: grid;
+      grid-template-columns: minmax(340px, 1.3fr) repeat(4, minmax(105px, .48fr));
+      gap: 8px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      background: #f1f6f3;
+    }
+
+    .private-wage-stat {
+      min-width: 0;
+      padding-left: 8px;
+      border-left: 1px solid #cedbd4;
+    }
+
+    .private-wage-stat span {
+      display: block;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 7.5px;
+      font-weight: 700;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .private-wage-stat strong {
+      display: block;
+      overflow: hidden;
+      margin-top: 3px;
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 11px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .fiscal-flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .fiscal-tax-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .flow-cell,
+    .tax-cell {
+      min-width: 0;
+      padding: 8px 10px;
+      border-right: 1px solid #e0e4e6;
+      border-bottom: 1px solid #e0e4e6;
+    }
+
+    .flow-cell:last-child,
+    .tax-cell:last-child { border-right: 0; }
+
+    .flow-cell span,
+    .tax-cell span {
+      display: block;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .flow-cell strong,
+    .tax-cell strong {
+      display: block;
+      overflow: hidden;
+      margin-top: 3px;
+      font-family: var(--mono);
+      font-size: 12px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .flow-cell:nth-child(2) strong,
+    .flow-cell:nth-child(5) strong,
+    .tax-cell strong { color: var(--green); }
+
+    .fiscal-tax-grid { background: #f7f9f8; }
+    .tax-cell { border-bottom: 0; }
+
+    .method-note {
+      margin-bottom: 6px;
+      border: 1px solid var(--line-dark);
+      background: var(--paper);
+    }
+
+    .method-note summary {
+      padding: 10px 12px;
+      cursor: pointer;
+      color: var(--navy-2);
+      font-size: 14px;
+      font-weight: 750;
+      list-style-position: inside;
+    }
+
+    .method-note[open] summary { border-bottom: 1px solid var(--line); }
+    .method-content { padding: 10px 12px 4px; }
+    .method-note p { margin: 0; color: #4d5b66; font-size: 10px; line-height: 1.5; }
+    .method-note h3 { margin: 13px 0 2px; font-size: 12px; }
+    .method-source-note { margin-bottom: 5px !important; color: var(--muted) !important; font-size: 9px !important; }
+
+    .source-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .source-list li {
+      padding: 7px 11px;
+      display: grid;
+      grid-template-columns: 35px minmax(0, 1fr);
+      gap: 8px;
+      border-bottom: 1px solid #e0e4e6;
+    }
+
+    .reference-index { color: #78858e; font-family: var(--mono); font-size: 9px; }
+    .source-list p { margin: 0; color: #4d5b66; font-size: 9.5px; line-height: 1.45; }
+    .source-list strong { color: var(--ink); font-weight: 700; }
+    .source-list a { margin-left: 4px; font-size: 9.5px; font-weight: 700; }
+
+    @media (max-width: 1259px) {
+      .overview { grid-template-columns: 1fr 1fr; }
+      .overview-cell { border-bottom: 1px solid var(--line); }
+      .overview-cell:nth-child(even) { border-right: 0; }
+      .overview-cell:nth-last-child(-n + 2) { border-bottom: 0; }
+      .table-selector { grid-template-columns: repeat(3, 1fr); }
+      .table-selector button { border-bottom: 1px solid var(--line); }
+      .matrix-viewport { overflow-x: auto; }
+      .salary-table { min-width: 1120px; }
+      .first-screen { min-height: 0; }
+    }
+
+    @media (max-width: 1000px) {
+      .fiscal-assumptions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .consumption-control { grid-column: 1 / -1; }
+      .private-wage-module { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .private-effect-control { grid-column: 1 / -1; }
+      .fiscal-flow, .fiscal-tax-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .flow-cell, .tax-cell { border-right: 1px solid #e0e4e6; }
+      .flow-cell:nth-child(3n), .tax-cell:nth-child(3n) { border-right: 0; }
+      .tax-cell { border-bottom: 1px solid #e0e4e6; }
+      .tax-cell:nth-last-child(-n + 2) { border-bottom: 0; }
+    }
+
+    @media (max-width: 720px) {
+      .first-screen { padding: 7px; }
+      .overview { grid-template-columns: 1fr; }
+      .overview-cell { padding: 9px 10px; }
+      .scenario { grid-template-columns: 120px 1fr; }
+      .table-selector { grid-template-columns: repeat(2, 1fr); }
+      .matrix-toolbar { grid-template-columns: 1fr; gap: 5px; }
+      .matrix-count { text-align: left; }
+      .audit-line { align-items: flex-start; flex-direction: column; white-space: normal; }
+      .details { padding: 7px 10px 50px; }
+      .details-grid { grid-template-columns: 1fr; }
+      .fiscal-summary-grid { align-items: flex-start; flex-direction: column; gap: 7px; }
+      .fiscal-assumptions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .private-wage-module { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .private-effect-control { grid-column: 1 / -1; }
+      .consumption-control,
+      .private-effect-control {
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr) 38px;
+      }
+      .consumption-control span,
+      .private-effect-control span { grid-column: 1 / -1; }
+      .fiscal-flow, .fiscal-tax-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .flow-cell:nth-child(3n), .tax-cell:nth-child(3n) { border-right: 1px solid #e0e4e6; }
+      .flow-cell:nth-child(2n), .tax-cell:nth-child(2n) { border-right: 0; }
+      .tax-cell { border-bottom: 1px solid #e0e4e6; }
+      .tax-cell:last-child { border-bottom: 0; }
+      .fiscal-total { text-align: left; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .first-screen { min-height: 0; max-width: none; padding: 0; }
+      .mode-control, .quiet-button { display: none; }
+      .details { max-width: none; padding: 18px 0; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="first-screen" aria-label="Rozpočtová kalkulačka">
+      <div class="overview">
+        <div class="overview-cell tool-title">
+          <h1>Platová politika ČR</h1>
+          <a class="author-link" href="https://x.com/mmt_cz" target="_blank" rel="noreferrer">@mmt_cz</a>
+        </div>
+        <div class="overview-cell metric policy-metric">
+          <span class="metric-label">Dopad na rozpočet</span>
+          <strong id="policyAnnual">0 Kč</strong>
+          <small>Kč / rok</small>
+        </div>
+        <div class="overview-cell metric gdp-metric">
+          <span class="metric-label">Růst HDP</span>
+          <strong id="gdpImpact">0 Kč</strong>
+          <small>Kč v 1. roce</small>
+        </div>
+        <div class="overview-cell scenario">
+          <div>
+            <span class="field-label">Scénář</span>
+            <button id="repairButton" class="repair-button" type="button" role="switch" aria-checked="true">
+              <span>Opravit tabulky</span>
+              <span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span>
+            </button>
+          </div>
+          <div>
+            <span class="field-label">Nejnižší tarif / minimální mzda</span>
+            <div class="slider-line">
+              <input id="minimumWage" type="range" min="10000" max="50000" step="100" value="22400" aria-label="Minimální mzda">
+              <output id="minimumWageOutput" for="minimumWage">22 400 Kč</output>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <nav id="tableSelector" class="table-selector" aria-label="Tarifní tabulky"></nav>
+
+      <div class="workspace-grid">
+        <article class="matrix-shell">
+          <header class="matrix-toolbar">
+            <div class="matrix-ident">
+              <h2 id="tableTitle">—</h2>
+              <p id="tableAudience">—</p>
+            </div>
+            <div class="mode-control" role="group" aria-label="Zobrazená data">
+              <button id="tariffMode" type="button" class="active" aria-pressed="true">Tarify · Kč/měs.</button>
+              <button id="countMode" type="button" aria-pressed="false">Počty · upravitelné</button>
+            </div>
+            <div class="matrix-count"><span>Počet</span><strong id="selectedEmployees">—</strong></div>
+          </header>
+          <div class="audit-line">
+            <span id="tariffAudit">—</span>
+            <span id="countAudit">—</span>
+          </div>
+          <div id="matrixViewport" class="matrix-viewport" role="region" aria-label="Tarifní matice"></div>
+          <footer class="matrix-foot">
+            <p id="matrixNote">—</p>
+            <button id="resetCounts" type="button" class="quiet-button">Obnovit původní počty</button>
+          </footer>
+        </article>
+
+      </div>
+    </section>
+
+    <section class="details">
+      <details class="fiscal-panel" aria-labelledby="fiscalTitle">
+        <summary class="fiscal-summary">
+          <span class="fiscal-summary-grid">
+            <span class="fiscal-heading">
+              <span class="fiscal-title" id="fiscalTitle">Vybrané daně a pojistné navíc</span>
+              <small>Veřejné příjmy ze zvýšení tarifů i z odhadovaného přelití minimální mzdy do mzdové sféry.</small>
+            </span>
+            <span class="fiscal-total">
+              <span>Vybrané příjmy celkem / rok</span>
+              <strong id="fiscalRevenueTotal">0 Kč</strong>
+              <small id="fiscalReturnRate">0 % nákladu opravy</small>
+            </span>
+          </span>
+        </summary>
+
+        <div class="fiscal-assumptions">
+          <label class="consumption-control" for="consumptionRate">
+            <span>Míra spotřeby z disponibilního přírůstku</span>
+            <input id="consumptionRate" type="range" min="50" max="100" step="1" value="80" aria-label="Míra spotřeby z disponibilního přírůstku">
+            <output id="consumptionRateOutput" for="consumptionRate">80 %</output>
+          </label>
+          <span class="rate-chip">DPFO 15 %</span>
+          <span class="rate-chip">sociální 7,1 %</span>
+          <span class="rate-chip">zdravotní 4,5 %</span>
+          <span class="rate-chip">efektivní DPH 12,6 %</span>
+          <span class="rate-chip">spotřební proxy 2,8 %</span>
+        </div>
+
+        <div class="private-wage-module" aria-label="Dopad minimální mzdy na mzdovou sféru">
+          <label id="privateEffectControl" class="private-effect-control" for="privateWageEffect">
+            <span>Soukromé mzdy (ISPV) · promítnutí rozdílu</span>
+            <input id="privateWageEffect" type="range" min="0" max="100" step="1" value="30" aria-label="Promítnutí zvýšení minimální mzdy do mzdové sféry">
+            <output id="privateWageEffectOutput" for="privateWageEffect">30 %</output>
+          </label>
+          <div class="private-wage-stat"><span>Pod novou hranicí</span><strong id="privateAffectedWorkers">0 osob</strong></div>
+          <div class="private-wage-stat"><span>Průměrně zasaženým</span><strong id="privateAverageRaise">0 Kč/měs.</strong></div>
+          <div class="private-wage-stat"><span>Soukromé mzdy / rok</span><strong id="privateGrossIncrease">0 Kč</strong></div>
+          <div class="private-wage-stat"><span>Veřejné příjmy / rok</span><strong id="privateRevenue">0 Kč</strong></div>
+        </div>
+
+        <div class="fiscal-flow" aria-label="Tok výpočtu veřejných příjmů">
+          <div class="flow-cell"><span>Hrubý přírůstek mezd</span><strong id="grossIncrease">0 Kč</strong></div>
+          <div class="flow-cell"><span>Přímé odvody</span><strong id="directRevenue">0 Kč</strong></div>
+          <div class="flow-cell"><span>Disponibilní přírůstek</span><strong id="disposableIncrease">0 Kč</strong></div>
+          <div class="flow-cell"><span>Dodatečná spotřeba</span><strong id="consumptionIncrease">0 Kč</strong></div>
+          <div class="flow-cell"><span>Nepřímé daně</span><strong id="indirectRevenue">0 Kč</strong></div>
+        </div>
+
+        <div class="fiscal-tax-grid" aria-label="Rozpad vybraných veřejných příjmů">
+          <div class="tax-cell"><span>Daň z příjmů · 15 %</span><strong id="incomeTaxRevenue">0 Kč</strong></div>
+          <div class="tax-cell"><span>Sociální zaměstnance · 7,1 %</span><strong id="socialRevenue">0 Kč</strong></div>
+          <div class="tax-cell"><span>Zdravotní zaměstnance · 4,5 %</span><strong id="healthRevenue">0 Kč</strong></div>
+          <div class="tax-cell"><span>Zaměstnavatelé · 33,8 %</span><strong id="employerRevenue">0 Kč</strong></div>
+          <div class="tax-cell"><span>DPH ze spotřeby · 12,6 %</span><strong id="vatRevenue">0 Kč</strong></div>
+          <div class="tax-cell"><span>Spotřební daně · proxy 2,8 %</span><strong id="exciseRevenue">0 Kč</strong></div>
+        </div>
+
+      </details>
+
+      <details class="method-note">
+        <summary>Metodika a literatura</summary>
+        <div class="method-content">
+          <p>Model počítá roční tarifní náklad jako počet v buňce × měsíční tarif × 12; nezahrnuje příplatky ani odměny. Oprava zvedá každý tarif o stejnou částku směrem k nastavené minimální mzdě. Soukromý efekt vychází z 3,010 mil. zaměstnanců mzdové sféry ISPV 2025 a po částech lineárně interpolované distribuce; spodní úsek vede od minimální mzdy 2025 ve výši 20 800 Kč k prvnímu decilu 24 919 Kč. Mzdová sféra je zde aproximací soukromého sektoru — statisticky jde o zaměstnance odměňované mzdou, nikoli o přesné institucionální členění. Ovladač 0–100 % násobí dopočtený mzdový rozdíl, nejde o prognózu zaměstnanosti. První čtyři tarifní stupnice zahrnují i samosprávy, příspěvkové organizace a část zdravotnictví; civilní a státní zaměstnanci MO se proto nepřičítají znovu. Odhad HDP používá multiplikátor ČNB 0,6 pro náhrady zaměstnancům při výchozí 80% míře spotřeby. Změna míry spotřeby tento odhad poměrně škáluje; jde o citlivostní předpoklad modelu, nikoli o samostatný odhad ČNB.</p>
+          <h3>Literatura, datové a právní zdroje</h3>
+          <p class="method-source-note">Akademický soupis použitých podkladů; stav ověření 8. srpna 2026.</p>
+          <ol id="sourceList" class="source-list"></ol>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+
+    const DATA = {"generatedAt":"2026-08-08","tables":[{"id":"public-general","code":"341 · 1","name":"Základní stupnice","audience":"Provozní, administrativní a odborné profese ve veřejných službách a správě, pokud nespadají do zvláštní stupnice.","regulation":"NV 341/2017 Sb. · příloha č. 1","tariffDate":"účinnost od 1. 4. 2026","countDate":"počty ve stupnici od 1. 1. 2024","countNote":"Rozpad třída × stupeň je z dodaného sešitu a součet 359 934 je ověřen proti podkladu MPSV z dat ISP. Zveřejněný podklad nedefinuje, zda jde o osoby, přepočtený počet nebo placené měsíce.","sourceUrl":"https://e-sbirka.gov.cz/sb/2017/341?zalozka=text","countSourceUrl":"https://www.zdravotnickeodbory.cz/wp-content/uploads/2024/10/podklad-mpsv-pro-jednani-o-platech-dne-3.-10.-2024.pdf","sourcePages":"úplné znění s. 8","countSourcePages":"součet s. 1; detail dodaný XLSX","classes":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"],"steps":["do 1 roku","do 2 let","do 4 let","do 6 let","do 9 let","do 12 let","do 15 let","do 19 let","do 23 let","do 27 let","do 32 let","nad 32 let"],"tariffs":[[14760,15740,16780,17900,19110,20440,21890,23470,25190,27030,29090,31230,33590,36160,38960,42000],[15170,16200,17280,18470,19760,21120,22590,24260,25990,27930,30050,32270,34730,37380,40300,43450],[15610,16700,17800,19030,20360,21780,23330,25050,26870,28870,31100,33380,35920,38690,41700,44960],[16070,17180,18370,19610,21020,22490,24090,25870,27760,29850,32130,34480,37130,40010,43160,46530],[16580,17720,18940,20240,21670,23210,24880,26730,28680,30840,33210,35680,38420,41390,44650,48140],[17100,18260,19510,20870,22370,23940,25700,27640,29630,31850,34340,36900,39740,42810,46200,49820],[17600,18850,20140,21540,23080,24740,26520,28540,30660,32940,35520,38180,41100,44310,47810,51570],[18140,19430,20780,22220,23830,25540,27390,29490,31680,34060,36720,39510,42530,45850,49520,53390],[18700,20030,21430,22940,24620,26380,28310,30470,32740,35220,37960,40850,44010,47490,51260,55280],[19320,20680,22120,23680,25430,27250,29220,31510,33860,36410,39270,42280,45560,49130,53080,57210],[19900,21300,22840,24450,26280,28170,30240,32610,35020,37690,40640,43740,47140,50880,54940,59280],[20540,22000,23580,25240,27160,29100,31240,33710,36210,38990,42050,45260,48800,52660,56870,61390]],"counts":[[141,202,65,60,125,238,285,485,675,602,803,388,225,80,0,1],[19,76,40,56,97,106,225,441,357,458,381,237,203,42,0,0],[38,113,54,93,141,205,376,777,771,978,910,597,396,76,0,0],[34,120,87,161,232,240,446,976,975,1206,1125,694,381,209,6,1],[33,174,137,291,349,509,849,1912,2260,2228,2115,1149,505,269,10,2],[53,199,178,378,409,595,941,1922,2006,2548,2131,1153,491,204,15,4],[40,328,240,531,519,741,1090,2092,2430,2686,2350,1331,488,166,20,4],[85,531,589,790,929,1225,1732,3347,3991,4054,3513,1889,716,261,24,20],[167,964,927,1104,1307,1532,2106,3774,4845,4487,3560,2057,760,230,48,18],[225,2212,1394,1703,2244,2075,2419,4222,5361,4632,3400,1901,712,225,50,23],[330,3833,1876,1642,2522,3444,3281,5508,6870,6133,4025,2155,775,219,51,15],[2074,37014,21336,17569,21637,9430,8614,12232,13193,12393,7983,5297,2199,1036,203,59]],"accent":"#3d7a60"},{"id":"public-health-social","code":"341 · 2","name":"Zdravotní a sociální","audience":"Nelékařští zdravotničtí pracovníci a vymezené profese sociálních služeb, sociální práce a poradenství.","regulation":"NV 341/2017 Sb. · příloha č. 2","tariffDate":"účinnost od 1. 4. 2026","countDate":"počty ve stupnici od 1. 1. 2024","countNote":"Dnešní příloha č. 2 sloučila dvě dřívější stupnice. Rozpad z dodaného sešitu má ověřený součet 126 041. Zveřejněný podklad nedefinuje přesný typ tohoto počtu.","sourceUrl":"https://e-sbirka.gov.cz/sb/2017/341?zalozka=text","countSourceUrl":"https://www.zdravotnickeodbory.cz/wp-content/uploads/2024/10/podklad-mpsv-pro-jednani-o-platech-dne-3.-10.-2024.pdf","sourcePages":"úplné znění s. 10","countSourcePages":"součet s. 1; detail dodaný XLSX","classes":["2","3","4","5","6","7","8","9","10","11","12","13","14","15"],"steps":["do 1 roku","do 2 let","do 4 let","do 6 let","do 9 let","do 12 let","do 15 let","do 19 let","do 23 let","do 27 let","do 32 let","nad 32 let"],"tariffs":[[17720,18880,20130,21520,22970,24570,27050,29080,31230,33670,36190,38940,41990,45290],[18260,19440,20760,22210,23690,25370,27960,30060,32280,34800,37420,40320,43440,46880],[18810,20040,21380,22880,24450,26170,28900,31060,33410,36030,38740,41720,44980,48540],[19360,20660,22030,23610,25240,27020,29880,32110,34540,37230,40030,43150,46520,50230],[19930,21300,22740,24330,26040,27910,30900,33180,35730,38520,41440,44650,48170,52000],[20520,21940,23430,25120,26860,28810,31940,34290,36930,39850,42890,46220,49830,53830],[21190,22620,24200,25910,27720,29720,33040,35490,38190,41220,44380,47820,51640,55720],[21830,23330,24930,26760,28620,30690,34150,36710,39530,42680,45910,49510,53430,57730],[22490,24060,25740,27600,29570,31710,35300,37950,40880,44140,47540,51230,55320,59790],[23220,24840,26570,28520,30540,32740,36520,39270,42320,45680,49210,53070,57290,61910],[23920,25610,27420,29460,31540,33850,37790,40650,43800,47230,50930,54920,59340,64110],[24690,26450,28280,30420,32590,34970,39110,42050,45340,48920,52730,56880,61450,66390]],"counts":[[12,2,73,122,112,84,164,1054,684,465,69,3,0,0],[0,3,60,103,64,45,133,357,708,287,104,1,0,0],[3,5,67,240,109,118,200,523,1351,687,283,8,0,0],[1,3,120,260,125,105,190,470,1180,757,283,31,5,0],[3,4,196,666,269,230,328,604,1750,1091,386,110,10,0],[3,7,322,822,256,257,346,405,1823,1166,430,101,22,0],[0,3,401,1035,338,293,348,301,2476,1494,451,133,37,0],[2,61,690,1844,512,459,517,202,3270,2099,564,188,82,1],[5,54,897,2189,606,459,570,200,3317,2715,735,178,84,2],[3,171,1212,3431,676,424,563,155,3682,3035,707,155,78,0],[7,139,1158,2709,576,386,667,170,4165,3079,653,147,66,1],[71,224,6577,13684,877,487,871,1092,10913,7357,1575,590,249,7]],"accent":"#397b8f"},{"id":"public-doctors","code":"341 · 3","name":"Lékaři a farmaceuti","audience":"Lékaři, zubní lékaři, farmaceuti u poskytovatelů zdravotních služeb a lékaři orgánu sociálního zabezpečení.","regulation":"NV 341/2017 Sb. · příloha č. 3","tariffDate":"účinnost od 1. 4. 2026","countDate":"počty ve stupnici od 1. 1. 2024","countNote":"Rozpad třída × stupeň je z dodaného sešitu a součet 20 829 je ověřen proti podkladu MPSV z dat ISP. Zveřejněný podklad nedefinuje přesný typ tohoto počtu.","sourceUrl":"https://e-sbirka.gov.cz/sb/2017/341?zalozka=text","countSourceUrl":"https://www.zdravotnickeodbory.cz/wp-content/uploads/2024/10/podklad-mpsv-pro-jednani-o-platech-dne-3.-10.-2024.pdf","sourcePages":"úplné znění s. 11","countSourcePages":"součet s. 1; detail dodaný XLSX","classes":["11","12","13","14","15","16"],"steps":["do 1 roku","do 2 let","do 4 let","do 6 let","do 9 let","do 12 let","do 15 let","do 19 let","do 23 let","do 27 let","do 32 let","nad 32 let"],"tariffs":[[41190,43640,48890,52000,55030,58340],[42270,44830,50200,53330,56500,59930],[43490,46110,51570,54740,58040,61580],[44650,47370,52950,56190,59590,63320],[45880,48730,54410,57700,61250,65060],[47180,50130,55930,59240,62950,66890],[48560,51590,57500,60930,64700,68800],[49930,53110,59120,62570,66560,70800],[51340,54660,60810,64340,68460,72840],[52860,56270,62570,66160,70420,74970],[54400,57970,64410,68040,72480,77190],[56020,59710,66280,70010,74570,79500]],"counts":[[0,699,10,2,0,0],[0,661,2,3,0,0],[0,942,390,1,0,0],[0,234,839,112,0,0],[0,214,734,562,0,0],[0,143,445,666,0,0],[0,68,355,788,5,0],[0,44,250,970,21,0],[0,33,178,976,41,0],[0,18,167,930,57,1],[0,16,213,1332,73,0],[0,693,1488,5050,401,2]],"accent":"#ca6d52"},{"id":"public-teachers","code":"341 · 4","name":"Pedagogové","audience":"Pedagogičtí pracovníci a akademičtí pracovníci státních vysokých škol. Třídy 15 a 16 jsou jen pro akademické pracovníky státních VŠ.","regulation":"NV 341/2017 Sb. · příloha č. 4","tariffDate":"účinnost od 1. 1. 2026","countDate":"počty ve stupnici od 1. 1. 2024","countNote":"Rozpad třída × stupeň je z dodaného sešitu a součet 269 160 je ověřen proti podkladu MPSV z dat ISP. Zveřejněný podklad nedefinuje přesný typ tohoto počtu.","sourceUrl":"https://e-sbirka.gov.cz/sb/2025/471?zalozka=text","countSourceUrl":"https://www.zdravotnickeodbory.cz/wp-content/uploads/2024/10/podklad-mpsv-pro-jednani-o-platech-dne-3.-10.-2024.pdf","sourcePages":"novela s. 3; úplné znění s. 12","countSourcePages":"součet s. 1; detail dodaný XLSX","classes":["4","5","6","7","8","9","10","11","12","13","14","15*","16*"],"steps":["do 2 let","do 6 let","do 12 let","do 19 let","do 27 let","do 32 let","nad 32 let"],"tariffs":[[18630,20050,21510,23140,28680,35840,36130,36780,37580,38480,39930,42920,46240],[19240,20690,22320,24000,29500,36140,36470,37430,38360,39650,41790,45920,49640],[20320,21930,23620,25540,30280,36570,37030,37900,39910,41310,44040,48400,53130],[21590,23270,25120,27020,31670,37330,38170,39330,41570,44350,47680,52300,57210],[22840,24660,26610,28780,33070,38480,39370,40980,44150,47750,52390,56700,61420],[24610,26590,28640,30950,35410,40460,41560,43250,47840,51690,56630,59680,63670],[25250,27240,29390,31760,36420,41370,42440,44420,48990,52970,57980,61830,66030]],"counts":[[14,23,61,274,4199,4664,499,3404,6316,24,0,0,0],[27,22,99,372,5508,6362,762,1531,10545,117,5,0,0],[50,74,164,921,12440,10639,1478,1980,17694,372,6,1,0],[97,87,202,737,9168,9512,1973,1978,22852,1001,19,7,2],[105,133,182,385,4884,7279,2430,1878,25803,2084,26,11,1],[105,79,81,113,1134,3497,1366,1070,14208,1565,9,4,0],[436,470,125,234,3019,11426,3587,3036,35952,4038,67,53,3]],"accent":"#bd8f3f"},{"id":"state-service","code":"304 · 1","name":"Úředníci státní správy","audience":"Úředníci, analytici a další státní zaměstnanci ve služebním poměru na ministerstvech a v ostatních služebních úřadech.","regulation":"NV 304/2014 Sb. · příloha č. 1","tariffDate":"účinnost od 1. 4. 2026","countDate":"počty ve stupnici od 1. 1. 2024","countNote":"Rozpad třída × stupeň a součet 70 375 pocházejí z podkladu MPSV/ISP pro rok 2024. Systemizace 2026 uvádí 65 158 služebních a 7 994 pracovních míst, ale bez rozdělení podle třídy a praxe; starší matici proto bez odhadu nenahrazujeme.","sourceUrl":"https://e-sbirka.gov.cz/sb/2014/304?zalozka=text","countSourceUrl":"https://www.zdravotnickeodbory.cz/wp-content/uploads/2024/10/podklad-mpsv-pro-jednani-o-platech-dne-3.-10.-2024.pdf","sourcePages":"úplné znění s. 6","countSourcePages":"součet s. 1; detail dodaný XLSX","classes":["6","7","8","9","10","11","12","13","14","15","16"],"steps":["do 1 roku","do 2 let","do 4 let","do 6 let","do 9 let","do 12 let","do 15 let","do 19 let","do 23 let","do 27 let","do 32 let","nad 32 let"],"tariffs":[[20440,21890,23470,25190,27030,29090,31670,35080,39510,44930,51580],[21120,22590,24260,25990,27930,30050,32730,36240,40840,46460,53360],[21780,23330,25050,26870,28870,31100,33870,37520,42330,48150,55330],[22490,24090,25870,27760,29850,32130,35000,38810,43780,49840,57270],[23210,24880,26730,28680,30840,33210,36210,40140,45280,51580,59290],[23940,25700,27640,29630,31850,34340,37450,41530,46870,53390,61420],[24740,26520,28540,30660,32940,35520,38740,42990,48530,55310,63620],[25540,27390,29490,31680,34060,36720,40060,44480,50240,57260,65880],[26380,28310,30470,32740,35220,37960,41420,45990,51950,59270,68220],[27250,29220,31510,33860,36410,39270,42860,47610,53810,61390,70650],[28170,30240,32610,35020,37690,40640,44360,49280,55700,63570,73190],[29100,31240,33710,36210,38990,42050,45940,51040,57700,65860,75870]],"counts":[[0,2,16,209,95,60,113,133,35,0,0],[0,4,17,204,104,83,121,142,30,1,0],[0,3,50,396,277,238,313,381,146,14,0],[0,1,66,549,356,229,397,478,169,22,0],[0,5,133,1047,881,505,714,785,330,47,1],[0,12,110,1040,875,720,717,878,402,48,0],[1,13,114,1175,861,601,657,799,426,76,3],[1,21,225,1631,1352,842,1017,1164,644,132,7],[4,18,223,1879,1329,868,1050,967,647,167,16],[4,34,219,2040,1492,959,982,874,506,185,30],[9,39,329,3027,2075,1325,1379,979,577,201,27],[26,92,592,5211,3286,2505,3230,2614,1452,381,60]],"accent":"#5d658d"},{"id":"security-basic","code":"407 · 1","name":"Bezpečnostní sbory · základní","audience":"Základní služební tarify policistů, hasičů, celníků, příslušníků Vězeňské služby, GIBS a zpravodajských služeb.","regulation":"NV 407/2025 Sb. · příloha č. 1","tariffDate":"účinnost od 1. 1. 2026","countDate":"rozpad za rok 2023","countNote":"Detailní rozpad je z dodaného sešitu a jeho původní zdroj v něm není uveden. Správný součet matice je 27 556.","sourceUrl":"https://e-sbirka.gov.cz/sb/2025/407?zalozka=text","countSourceUrl":"https://mv.gov.cz/norwaygrants/SCRIPT/ViewFile.aspx?docid=22555994","sourcePages":"příloha č. 1","countSourcePages":"detail dodaný XLSX; kontrola 2025 v závěrečných účtech","classes":["1","2","3","4","5","6","7","8","9","10","11"],"steps":["do 3 let","do 6 let","do 9 let","do 12 let","do 15 let","do 18 let","do 21 let","do 24 let","do 27 let","do 30 let","do 33 let","nad 33 let"],"tariffs":[[26040,27900,28210,30270,32490,34900,37480,40320,43390,46740,50360],[26880,28800,29120,31240,33540,36050,38750,41690,44870,48360,52110],[27710,29690,30030,32250,34640,37250,40040,43100,46390,50010,53890],[28590,30680,31020,33310,35790,38480,41400,44550,47990,51730,55770],[29510,31660,32040,34410,36980,39760,42790,46080,49620,53490,57690],[30440,32680,33090,35540,38190,41110,44240,47640,51360,55350,59710],[31420,33730,34170,36720,39500,42490,45750,49270,53120,57290,61800],[32460,34840,35300,37930,40810,43940,47320,50970,54960,59270,63970],[33510,35980,36450,39210,42180,45430,48930,52730,56860,61350,66210],[34600,37170,37680,40520,43620,46970,50600,54540,58840,63510,68540],[35750,38420,38940,41910,45100,48570,52370,56440,60890,65720,70950],[36910,39690,40250,43320,46650,50250,54170,58440,63030,68020,73450]],"counts":[[65,1531,235,92,39,106,101,85,2,0,0],[3,108,111,167,130,257,204,119,18,0,0],[0,30,74,140,173,436,426,234,35,0,0],[1,8,42,77,124,471,529,303,66,1,0],[2,4,42,83,152,452,590,421,109,7,0],[0,5,34,98,199,840,1173,709,248,16,0],[0,1,34,78,158,575,882,648,243,16,1],[0,4,30,84,146,693,921,725,294,36,1],[0,3,20,40,101,706,873,809,337,47,5],[1,5,11,31,73,577,678,612,278,46,0],[0,1,9,31,55,543,568,565,290,43,5],[0,1,8,29,67,934,669,759,315,109,5]],"latestReferenceCount":61341.24,"latestReferenceLabel":"veřejně dohledatelný roční průměr pěti sborů dohromady v roce 2025; bez BIS a ÚZSI","warning":"Nejnovější veřejné součty nelze rozdělit mezi 264 buněk bez odhadu. Kalkulačka proto zachovává starší detailní rozpad a novější celkový počet ukazuje jen pro kontrolu.","accent":"#545e68"},{"id":"security-increased","code":"407 · 2","name":"Bezpečnostní sbory · zvýšený","audience":"Zvýšené tarify pro dvousměnný, třísměnný nebo nepřetržitý režim služby. Částky jsou přesně z přílohy, ne dopočet 110 %.","regulation":"NV 407/2025 Sb. · příloha č. 2","tariffDate":"účinnost od 1. 1. 2026","countDate":"rozpad za rok 2023","countNote":"Detailní rozpad je z dodaného sešitu a jeho původní zdroj v něm není uveden. Správný součet matice je 34 287.","sourceUrl":"https://e-sbirka.gov.cz/sb/2025/407?zalozka=text","countSourceUrl":"https://mv.gov.cz/norwaygrants/SCRIPT/ViewFile.aspx?docid=22555994","sourcePages":"příloha č. 2","countSourcePages":"detail dodaný XLSX; kontrola 2025 v závěrečných účtech","classes":["1","2","3","4","5","6","7","8","9","10","11"],"steps":["do 3 let","do 6 let","do 9 let","do 12 let","do 15 let","do 18 let","do 21 let","do 24 let","do 27 let","do 30 let","do 33 let","nad 33 let"],"tariffs":[[28650,30690,31040,33300,35740,38390,41230,44360,47730,51420,55400],[29570,31680,32040,34370,36900,39660,42630,45860,49360,53200,57330],[30490,32660,33040,35480,38110,40980,44050,47410,51030,55020,59280],[31450,33750,34130,36650,39370,42330,45540,49010,52790,56910,61350],[32470,34830,35250,37860,40680,43740,47070,50690,54590,58840,63460],[33490,35950,36400,39100,42010,45230,48670,52410,56500,60890,65690],[34570,37110,37590,40400,43450,46740,50330,54200,58440,63020,67980],[35710,38330,38830,41730,44900,48340,52060,56070,60460,65200,70370],[36870,39580,40100,43140,46400,49980,53830,58010,62550,67490,72840],[38060,40890,41450,44580,47990,51670,55660,60000,64730,69870,75400],[39330,42270,42840,46110,49610,53430,57610,62090,66980,72300,78050],[40610,43660,44280,47660,51320,55280,59590,64290,69340,74830,80800]],"counts":[[45,371,2842,1111,209,107,4,3,0,0,0],[34,81,1272,1777,1606,157,16,12,0,0,0],[11,34,736,957,1622,269,42,32,0,0,0],[2,17,434,588,1034,301,55,25,0,1,0],[2,6,322,491,1016,354,90,27,2,0,0],[2,2,362,812,1964,788,155,55,5,2,0],[0,0,263,443,1057,544,155,41,4,1,0],[0,0,259,487,1122,651,159,50,3,3,0],[0,0,223,348,781,633,153,52,2,2,0],[2,1,140,241,522,471,107,43,1,0,0],[0,0,100,210,444,458,104,34,2,1,0],[2,0,138,240,441,725,123,31,3,3,0]],"warning":"BIS a ÚZSI nezveřejňují přesný počet a u zpravodajských služeb zákon připouští individuální tarif v rozpětí třídy. Neznámá data zde nejsou nahrazena nulou ani odhadem.","accent":"#8c5f5f"},{"id":"soldiers","code":"59 · VZP","name":"Vojáci z povolání","audience":"Služební tarify podle vojenské hodnosti; úplná hodnostní struktura bez čekatelů.","regulation":"NV 59/2015 Sb. · § 2","tariffDate":"účinnost od 1. 1. 2026","countDate":"stav k 1. 10. 2025","countNote":"Počty po jednotlivých hodnostech jsou z nejnovější úplné hodnostní struktury zveřejněné Ministerstvem obrany.","sourceUrl":"https://e-sbirka.gov.cz/sb/2015/59?zalozka=text","countSourceUrl":"https://statnisluzba.mo.gov.cz/sites/statnisluzba/files/2025-11/Hodnostn%C3%AD%20struktura%20voj%C3%A1k%C5%AF%202024%20a%202025.pdf","sourcePages":"§ 2; novela 211/2025 bod 2, s. 2","countSourcePages":"stav k 1. 10. 2025, s. 1–2","classes":["Vojín","Svobodník","Desátník","Četař","Rotný","Rotmistr","Nadrotmistr","Praporčík","Nadpraporčík","Štábní praporčík","Poručík","Nadporučík","Kapitán","Major","Podplukovník","Plukovník","Brigádní generál","Generálmajor","Generálporučík","Armádní generál"],"steps":["hodnostní tarif"],"tariffs":[[22400,36590,38400,40400,46360,49350,52360,55680,59290,75890,50370,56710,64660,72590,80540,102000,112290,128140,144030,159890]],"counts":[[0,976,3204,4053,2316,3691,3146,2177,300,32,1169,1827,1845,1306,938,343,26,8,5,1]],"accent":"#476b3f"},{"id":"soldier-candidates","code":"59 · ček.","name":"Vojáci čekatelé","audience":"Vojáci čekatelé podle propůjčené hodnosti; tarifní částky pro minimální mzdu 22 400 Kč v roce 2026.","regulation":"NV 59/2015 Sb. · § 3","tariffDate":"účinnost od 1. 1. 2026","countDate":"stav k 1. 10. 2025","countNote":"Počty po jednotlivých propůjčených hodnostech jsou z nejnovější úplné hodnostní struktury zveřejněné Ministerstvem obrany.","sourceUrl":"https://e-sbirka.gov.cz/sb/2015/59?zalozka=text","countSourceUrl":"https://statnisluzba.mo.gov.cz/sites/statnisluzba/files/2025-11/Hodnostn%C3%AD%20struktura%20voj%C3%A1k%C5%AF%202024%20a%202025.pdf","sourcePages":"konsolidované znění § 3","countSourcePages":"stav k 1. 10. 2025, s. 2","classes":["Vojín","Svobodník","Desátník","Četař","Rotný","Rotmistr","Nadrotmistr"],"steps":["čekatelský tarif"],"tariffs":[[22400,23230,24040,24870,25680,26500,27290]],"counts":[[253,459,305,296,275,198,4]],"accent":"#81704c"}],"sources":[{"title":"NV 341/2017 Sb. — aktuální úplné znění","note":"Čtyři stupnice pro veřejné služby; přílohy 1–3 účinné od 1. 4. 2026, příloha 4 od 1. 1. 2026.","url":"https://e-sbirka.gov.cz/sb/2017/341?zalozka=text"},{"title":"NV 304/2014 Sb. — aktuální úplné znění","note":"Stupnice platových tarifů státních zaměstnanců účinná od 1. 4. 2026.","url":"https://e-sbirka.gov.cz/sb/2014/304?zalozka=text"},{"title":"NV 407/2025 Sb.","note":"Základní i zvýšená stupnice služebních tarifů bezpečnostních sborů od 1. 1. 2026.","url":"https://e-sbirka.gov.cz/sb/2025/407?zalozka=text"},{"title":"NV 211/2025 Sb. a NV 59/2015 Sb.","note":"Novela služebních tarifů vojáků z povolání s účinností od 1. 1. 2026.","url":"https://e-sbirka.gov.cz/sb/2025/211?zalozka=text"},{"title":"Podklad MPSV pro jednání o platech","note":"Počty zaměstnanců v jednotlivých stupnicích k 1. 1. 2024, zdroj MPSV/RV z Informačního systému o platech, s. 1.","url":"https://www.zdravotnickeodbory.cz/wp-content/uploads/2024/10/podklad-mpsv-pro-jednani-o-platech-dne-3.-10.-2024.pdf"},{"title":"Důvodová zpráva k NV 16/2026 Sb.","note":"Nejnovější vládní výpočty používají data RV ISPV/TREXIMA za rok 2024; jemná matice však zveřejněna nebyla, s. 3–4.","url":"https://www.odok.gov.cz/portal/services/download/attachment/KORNDQXCBVJC/"},{"title":"Hodnostní struktura vojáků 2024 a 2025","note":"Ministerstvo obrany, úplný počet vojáků a čekatelů podle hodnosti k 1. 10. 2025, s. 2–3.","url":"https://statnisluzba.mo.gov.cz/sites/statnisluzba/files/2025-11/Hodnostn%C3%AD%20struktura%20voj%C3%A1k%C5%AF%202024%20a%202025.pdf"},{"title":"Závěrečný účet Ministerstva vnitra 2025","note":"Roční průměr 40 430 příslušníků PČR a 10 700 příslušníků HZS, tištěná s. 91.","url":"https://mv.gov.cz/norwaygrants/SCRIPT/ViewFile.aspx?docid=22555994"},{"title":"Závěrečný účet Ministerstva financí 2025","note":"Skutečný průměrný přepočtený počet 3 468 celníků, s. 50.","url":"https://mf.gov.cz/assets/attachments/2026-05-19_Zaverecny-ucet-kapitoly-312-Ministerstvo-financi-za-rok-2025.pdf"},{"title":"Závěrečný účet Ministerstva spravedlnosti 2025","note":"Průměrný přepočtený počet 6 496,24 příslušníků Vězeňské služby, s. 75.","url":"https://msp.gov.cz/documents/d/msp/zu-kapitoly-za-rok-2025-pdf"},{"title":"Tabulková část SZÚ ČR 2025","note":"Skutečný počet 247 příslušníků GIBS, tabulka č. 10, její s. 8.","url":"https://mf.gov.cz/assets/attachments/2026-04-30_G-Tabulkova-cast.pdf"},{"title":"Minimální mzda 2026","note":"MPSV: od 1. 1. do 31. 12. 2026 činí minimální mzda 22 400 Kč měsíčně.","url":"https://mpsv.gov.cz/minimalni-mzda"},{"title":"ISPV — mzdová sféra ČR, rok 2025","note":"Výsledky ke dni 25. 3. 2026, tabulka MZS-M0: 3 010,1875 tis. zaměstnanců přepočtených podle placených měsíců; P10 24 919 Kč, P25 32 538 Kč, medián 43 241 Kč, P75 58 801 Kč a P90 85 087 Kč.","url":"https://www.ispv.cz/vysledky.html"},{"title":"Genderová kvantitativní analýza MO k 1. 1. 2026","note":"Kontrolní počty civilních a státních zaměstnanců MO a přepočtený počet vojáků za rok 2025, s. 31–33.","url":"https://www.mo.gov.cz/assets/informacni-servis/povinne-informace/1-rovne-prilezitosti/kvantitativni-genderova-analyza-k-1--lednu-2026.pdf"},{"title":"Úřad vlády ČR — Systemizace služebních a pracovních míst od 1. 1. 2026","note":"Ve 150 služebních úřadech je 65 158 služebních a 7 994 pracovních míst, celkem 73 152 fyzických systemizovaných míst; s. 2.","url":"https://vlada.gov.cz/assets/Statni_sluzba/Dokumenty/systemizace/Systemizace-sluzebnich-a-pracovnich-mist-s-ucinnosti-od-1--ledna-2026.pdf"},{"title":"Finanční správa ČR — zdanění příjmů zaměstnanců v roce 2026","note":"Příjmy ze závislé činnosti podléhají sazbě 15 %; 23% sazba se použije na část měsíčního základu nad 146 901 Kč. Model používá 15% mezní odhad bez individuálních slev.","url":"https://financnisprava.gov.cz/cs/dane/dane/dan-z-prijmu/zamestnanci-zamestnavatele/obecne-informace"},{"title":"ČSSZ — výše a sazba pojistného","note":"V roce 2026 zaměstnanec odvádí 7,1 % a běžný zaměstnavatel 24,8 % z vyměřovacího základu; model vyšší sazby u rizikových profesí neřeší.","url":"https://www.cssz.gov.cz/vyse-a-sazba"},{"title":"Zákon č. 187/2006 Sb., § 5 — účast zaměstnanců na nemocenském pojištění","note":"Výslovně zahrnuje zaměstnance v pracovním poměru, státní zaměstnance, příslušníky bezpečnostních sborů a vojáky z povolání.","url":"https://ppropo.mpsv.cz/zakon_187_2006"},{"title":"VZP ČR — vyměřovací základ a výpočet pojistného zaměstnance","note":"Zdravotní pojistné činí 13,5 %; 4,5 % nese zaměstnanec a 9 % zaměstnavatel.","url":"https://www.vzp.cz/platci/informace/zamestnavatel/vymerovaci-zaklad-a-vypocet-pojistneho"},{"title":"European Commission, Data on Taxation Trends 2026 — Czechia","note":"Country profile, list CZ: implicitní zdanění spotřeby za rok 2024 činí 18,18 %. Poměrná kalibrace modelu dává efektivní DPH 12,61 % a proxy ostatních výrobkových a spotřebních daní 2,77 % z dodatečné spotřeby.","url":"https://taxation-customs.ec.europa.eu/document/download/ff0728c1-9176-4759-b981-8872e0374416_en?filename=Part2_country_profiles.xlsx"},{"title":"Česká národní banka — Vývoj odhadu fiskálního impulzu v prognózách ČNB","note":"CNBlog, 16. 4. 2026. Prognóza nadále používá pevný multiplikátor 0,6 pro náhrady zaměstnancům; dynamické multiplikátory nebyly zavedeny.","url":"https://www.cnb.cz/cs/o_cnb/cnblog/Vyvoj-odhadu-fiskalniho-impulzu-vprognozach-CNB/"},{"title":"Česká národní banka — Zpráva o měnové politice, jaro 2021","note":"Box 2, PDF s. 16 (číslovaná s. 17): tabulka fiskálních multiplikátorů uvádí 0,6 pro mzdovou složku vládní spotřeby.","url":"https://www.cnb.cz/export/sites/cnb/cs/menova-politika/.galleries/zpravy_o_menove_politice/2021/2021_jaro/download/zomp_2021_jaro.pdf"},{"title":"NV 222/2010 Sb. — katalog prací ve veřejných službách a správě","note":"Ověření příkladů profesí: ošetřovatel 5.–7. třída, lékař 12.–15. třída, učitel 8.–14. třída a asistent pedagoga 4.–9. třída.","url":"https://ppropo.mpsv.cz/narizeni_vlady_222_2010"},{"title":"MMR — analytik/analytička operačního programu IROP","note":"Aktuální příklad služebního místa analytika ministerstva zařazeného do 14. platové třídy.","url":"https://irop.gov.cz/cs/ostatni/doporucene/pracovni-prilezitosti/analytik-analyticka-operacniho-programu-irop%2C-mmr_"},{"title":"Zákon č. 361/2003 Sb. — služební poměr příslušníků bezpečnostních sborů","note":"§ 114 odst. 2 přiznává tarif zvýšený o 10 % příslušníkům ve dvousměnném, třísměnném nebo nepřetržitém režimu služby.","url":"https://e-sbirka.gov.cz/sb/2003/361/2026-01-01"},{"title":"Policie ČR — údaje k obvodním oddělením","note":"Úřední odpověď dokládá policisty v 6. tarifní třídě se zvýšeným tarifem podle § 114 odst. 2.","url":"https://policie.gov.cz/clanek/zadost-o-sdeleni-informaci-ke-krp-t.aspx"}]};
+    const TABLES = DATA.tables;
+    const TABLE_GROUPS = [
+      { id: "public-general", tableIds: ["public-general"] },
+      { id: "public-health-social", tableIds: ["public-health-social"] },
+      { id: "public-doctors", tableIds: ["public-doctors"] },
+      { id: "public-teachers", tableIds: ["public-teachers"] },
+      { id: "state-service", tableIds: ["state-service"] },
+      {
+        id: "security-corps",
+        name: "Bezpečnostní sbory",
+        title: "Bezpečnostní sbory",
+        audience: "Základní a zvýšená tarifní stupnice příslušníků bezpečnostních sborů ve dvou tabulkách pod sebou.",
+        tableIds: ["security-basic", "security-increased"]
+      },
+      {
+        id: "military-tariffs",
+        name: "Vojáci",
+        title: "Vojáci",
+        audience: "Hodnostní tarify vojáků z povolání a čekatelské tarify ve dvou tabulkách pod sebou.",
+        tableIds: ["soldiers", "soldier-candidates"]
+      }
+    ];
+    const PROFESSION_EXAMPLES = [
+      { name: "Uklízečka", tableId: "public-general", salaryClass: "2", stepIndex: 0 },
+      { name: "Školník", tableId: "public-general", salaryClass: "3", stepIndex: 0 },
+      { name: "Kuchařka", tableId: "public-general", salaryClass: "4", stepIndex: 0 },
+      { name: "Knihovnice", tableId: "public-general", salaryClass: "6", stepIndex: 0 },
+      { name: "Soudní zapisovatelka", compact: true, tableId: "public-general", salaryClass: "7", stepIndex: 0 },
+      { name: "Tlumočník znakovky", compact: true, tableId: "public-general", salaryClass: "10", stepIndex: 0 },
+      { name: "Sanitář", tableId: "public-health-social", salaryClass: "3", stepIndex: 0 },
+      { name: "Pečovatelka", tableId: "public-health-social", salaryClass: "4", stepIndex: 0 },
+      { name: "Ošetřovatelka", tableId: "public-health-social", salaryClass: "5", stepIndex: 0 },
+      { name: "Praktická sestra", tableId: "public-health-social", salaryClass: "9", stepIndex: 0 },
+      { name: "Lékař po škole", tableId: "public-doctors", salaryClass: "12", stepIndex: 0 },
+      { name: "Atestovaný lékař", tableId: "public-doctors", salaryClass: "14", stepIndex: 0 },
+      { name: "Asistentka pedagoga", compact: true, tableId: "public-teachers", salaryClass: "4", stepIndex: 0 },
+      { name: "Učitelka ZŠ", tableId: "public-teachers", salaryClass: "12", stepIndex: 0 },
+      { name: "Referent ÚP / ČSSZ", tableId: "state-service", salaryClass: "9", stepIndex: 0 },
+      { name: "Analytik ministerstva", compact: true, tableId: "state-service", salaryClass: "14", stepIndex: 0 },
+      { name: "Vojín", tableId: "soldiers", salaryClass: "Vojín", stepIndex: 0 },
+      { name: "Hasič / policista (IZS)", tableId: "security-basic", salaryClass: "4", stepIndex: 0 },
+      { name: "Policista ve směně", compact: true, tableId: "security-increased", salaryClass: "6", stepIndex: 0 }
+    ];
+    const MODEL_RATES = {
+      incomeTax: 0.15,
+      employeeSocial: 0.071,
+      employeeHealth: 0.045,
+      employerSocial: 0.248,
+      employerHealth: 0.09,
+      effectiveVat: 0.12605213822414627,
+      effectiveExcise: 0.027720913852227726,
+      cnbCompensationMultiplier: 0.6,
+      baselineConsumptionRate: 0.80
+    };
+    const WAGE_SPHERE = {
+      employees: 3010187.5,
+      baselineMinimum: 20800,
+      quantiles: [
+        { share: 0, wage: 20800 },
+        { share: 0.10, wage: 24919.3679 },
+        { share: 0.25, wage: 32537.9046 },
+        { share: 0.50, wage: 43240.674 },
+        { share: 0.75, wage: 58801.3532 },
+        { share: 0.90, wage: 85086.8851 }
+      ]
+    };
+    const ORIGINAL_COUNTS = Object.fromEntries(
+      TABLES.map((table) => [table.id, table.counts.map((row) => [...row])])
+    );
+
+    const state = {
+      selectedId: TABLE_GROUPS[0].id,
+      mode: "tariffs",
+      repair: true,
+      minimumWage: 22400,
+      consumptionRate: 0.80,
+      privateWageEffect: 0.30,
+      counts: cloneCounts(ORIGINAL_COUNTS)
+    };
+
+    const lowestTariff = Math.min(
+      ...TABLES.flatMap((table) => table.tariffs.flatMap((row) => row))
+    );
+
+    const numberFormat = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 2 });
+    const integerFormat = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 });
+    const shortNumberFormat = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 1 });
+
+    function cloneCounts(source) {
+      return Object.fromEntries(
+        Object.entries(source).map(([id, matrix]) => [id, matrix.map((row) => [...row])])
+      );
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function formatInteger(value) {
+      return integerFormat.format(value);
+    }
+
+    function formatNumber(value) {
+      return numberFormat.format(value);
+    }
+
+    function formatMoney(value) {
+      return `${integerFormat.format(Math.round(value))} Kč`;
+    }
+
+    function formatCompactMoney(value, digits = 2) {
+      const absolute = Math.abs(value);
+      if (absolute >= 1_000_000_000) {
+        return `${new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: digits }).format(value / 1_000_000_000)} mld. Kč`;
+      }
+      if (absolute >= 1_000_000) {
+        return `${new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: digits }).format(value / 1_000_000)} mil. Kč`;
+      }
+      return formatMoney(value);
+    }
+
+    function formatSignedCompactMoney(value) {
+      if (value === 0) return "0 Kč";
+      return `${value > 0 ? "+" : "−"}${formatCompactMoney(Math.abs(value))}`;
+    }
+
+    function formatKpiMoney(value) {
+      const absolute = Math.abs(value);
+      if (absolute >= 1_000_000_000) {
+        return `${shortNumberFormat.format(value / 1_000_000_000)} mld.`;
+      }
+      if (absolute >= 1_000_000) {
+        return `${shortNumberFormat.format(value / 1_000_000)} mil.`;
+      }
+      return formatInteger(value);
+    }
+
+    function formatSignedKpiMoney(value) {
+      if (value === 0) return "0";
+      return `${value > 0 ? "+" : "−"}${formatKpiMoney(Math.abs(value))}`;
+    }
+
+    function formatCellCost(value) {
+      const absolute = Math.abs(value);
+      if (absolute >= 1_000_000_000) return `${shortNumberFormat.format(value / 1_000_000_000)}mld`;
+      if (absolute >= 1_000_000) return `${integerFormat.format(Math.round(value / 1_000_000))}mil`;
+      if (absolute >= 1_000) return `${integerFormat.format(Math.round(value / 1_000))}tis`;
+      return formatInteger(value);
+    }
+
+    function sumMatrix(matrix) {
+      return matrix.reduce(
+        (total, row) => total + row.reduce((rowTotal, value) => rowTotal + value, 0),
+        0
+      );
+    }
+
+    function tariffShift() {
+      return state.repair ? Math.max(0, state.minimumWage - lowestTariff) : 0;
+    }
+
+    function calculateTable(table, shift = tariffShift()) {
+      const counts = state.counts[table.id];
+      let monthly = 0;
+      for (let rowIndex = 0; rowIndex < table.tariffs.length; rowIndex += 1) {
+        for (let columnIndex = 0; columnIndex < table.tariffs[rowIndex].length; columnIndex += 1) {
+          monthly += (table.tariffs[rowIndex][columnIndex] + shift) * counts[rowIndex][columnIndex];
+        }
+      }
+      return {
+        employees: sumMatrix(counts),
+        monthly,
+        annual: monthly * 12
+      };
+    }
+
+    function calculations() {
+      return TABLES.map((table) => ({ table, ...calculateTable(table) }));
+    }
+
+    function selectedTable() {
+      return selectedTables()[0] || TABLES[0];
+    }
+
+    function selectedGroup() {
+      return TABLE_GROUPS.find((group) => group.id === state.selectedId) || TABLE_GROUPS[0];
+    }
+
+    function tablesForGroup(group) {
+      return group.tableIds.map((id) => TABLES.find((table) => table.id === id)).filter(Boolean);
+    }
+
+    function selectedTables() {
+      return tablesForGroup(selectedGroup());
+    }
+
+    function tableDisplayName(table) {
+      if (table.id === "public-general") return "Základní stupnice";
+      if (table.id === "security-basic") return "BZ · základní";
+      if (table.id === "security-increased") return "BZ · zvýšený";
+      return table.name;
+    }
+
+    function groupDisplayName(group) {
+      if (group.name) return group.name;
+      const table = tablesForGroup(group)[0];
+      return table ? tableDisplayName(table) : group.id;
+    }
+
+    function groupSectionName(table) {
+      if (table.id === "security-basic") return "Základní tarif";
+      if (table.id === "security-increased") return "Zvýšený tarif";
+      if (table.id === "soldiers") return "Vojáci z povolání";
+      if (table.id === "soldier-candidates") return "Čekatelé";
+      return tableDisplayName(table);
+    }
+
+    function columnHeaderText(table, salaryClass) {
+      return table.id.startsWith("soldier") ? salaryClass : `Třída ${salaryClass}`;
+    }
+
+    function sourceAnchor(url, label) {
+      return `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(label)} ↗</a>`;
+    }
+
+    function renderOverview() {
+      const rows = calculations();
+      const group = selectedGroup();
+      const selectedRows = rows.filter((row) => group.tableIds.includes(row.table.id));
+      const selectedEmployees = selectedRows.reduce((total, row) => total + row.employees, 0);
+      const scenario = fiscalScenario();
+
+      document.getElementById("policyAnnual").textContent = formatKpiMoney(scenario.netBudgetImpact);
+      document.getElementById("policyAnnual").dataset.value = String(Math.round(scenario.netBudgetImpact));
+      document.getElementById("gdpImpact").textContent = formatSignedKpiMoney(scenario.gdpImpact);
+      document.getElementById("gdpImpact").dataset.value = String(Math.round(scenario.gdpImpact));
+      document.getElementById("selectedEmployees").textContent = formatNumber(selectedEmployees);
+
+      const repairButton = document.getElementById("repairButton");
+      repairButton.setAttribute("aria-checked", String(state.repair));
+      document.getElementById("minimumWageOutput").textContent = formatMoney(state.minimumWage);
+    }
+
+    function renderSelector() {
+      const rows = calculations();
+      document.getElementById("tableSelector").innerHTML = TABLE_GROUPS.map((group) => {
+        const annual = rows
+          .filter((row) => group.tableIds.includes(row.table.id))
+          .reduce((total, row) => total + row.annual, 0);
+        return `
+        <button type="button" data-table-group-id="${escapeHtml(group.id)}" class="${group.id === state.selectedId ? "selected" : ""}"
+          title="${escapeHtml(`${groupDisplayName(group)} · ${formatCompactMoney(annual)}`)}" aria-pressed="${group.id === state.selectedId}">
+          <span class="selector-name">${escapeHtml(groupDisplayName(group))}</span>
+        </button>
+      `;
+      }).join("");
+
+      document.querySelectorAll("[data-table-group-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedId = button.dataset.tableGroupId;
+          renderAll();
+        });
+      });
+    }
+
+    function columnAnnualCost(table, columnIndex) {
+      return table.tariffs.reduce((total, row, rowIndex) => {
+        return total + (row[columnIndex] + tariffShift()) * state.counts[table.id][rowIndex][columnIndex] * 12;
+      }, 0);
+    }
+
+    function renderMatrix() {
+      const group = selectedGroup();
+      const tables = selectedTables();
+      const table = tables[0];
+      const repairedClass = state.repair ? "adjusted" : "";
+      const uniqueValues = (values) => [...new Set(values.filter(Boolean))];
+      const sourceLinks = (key, genericLabel) => {
+        const urls = uniqueValues(tables.map((candidate) => candidate[key]));
+        return urls.map((url) => {
+          const sourceTable = tables.find((candidate) => candidate[key] === url);
+          return sourceAnchor(url, urls.length === 1 ? genericLabel : groupSectionName(sourceTable));
+        }).join(" · ");
+      };
+
+      document.getElementById("tableTitle").textContent = group.title || tableDisplayName(table);
+      document.getElementById("tableAudience").textContent = group.audience || table.audience;
+      document.getElementById("tariffAudit").innerHTML = `Tarify: ${escapeHtml(uniqueValues(tables.map((candidate) => candidate.tariffDate)).join(" / "))}, ${escapeHtml(uniqueValues(tables.map((candidate) => candidate.sourcePages)).join(" / "))} · ${sourceLinks("sourceUrl", "právní zdroj")}`;
+      document.getElementById("countAudit").innerHTML = `Počty: ${escapeHtml(uniqueValues(tables.map((candidate) => candidate.countDate)).join(" / "))}, ${escapeHtml(uniqueValues(tables.map((candidate) => candidate.countSourcePages)).join(" / "))} · ${sourceLinks("countSourceUrl", "datový zdroj")}`;
+      document.getElementById("matrixNote").textContent = uniqueValues(tables.map((candidate) => candidate.warning || candidate.countNote)).join(" ");
+
+      document.getElementById("tariffMode").classList.toggle("active", state.mode === "tariffs");
+      document.getElementById("countMode").classList.toggle("active", state.mode === "counts");
+      document.getElementById("tariffMode").setAttribute("aria-pressed", String(state.mode === "tariffs"));
+      document.getElementById("countMode").setAttribute("aria-pressed", String(state.mode === "counts"));
+
+      const renderSingleMatrix = (columnTable, showHeading) => {
+        const tableProfessions = PROFESSION_EXAMPLES.filter((profession) => profession.tableId === columnTable.id);
+        const professionClasses = new Set(tableProfessions.map((profession) => profession.salaryClass));
+        const professionColumnWeight = 1.7;
+        const rowLabelWidth = group.id === "military-tariffs" ? 90 : 110;
+        const weightedColumnCount = columnTable.classes.reduce(
+          (total, salaryClass) => total + (professionClasses.has(salaryClass) ? professionColumnWeight : 1),
+          0
+        );
+        const baseColumnWidth = (1120 - rowLabelWidth) / weightedColumnCount;
+        const columnSizing = `<colgroup><col style="width:${rowLabelWidth}px">${columnTable.classes.map((salaryClass) => {
+          const width = baseColumnWidth * (professionClasses.has(salaryClass) ? professionColumnWeight : 1);
+          return `<col style="width:${width.toFixed(2)}px">`;
+        }).join("")}</colgroup>`;
+        const headerCells = columnTable.classes.map((salaryClass) => {
+          const heading = columnHeaderText(columnTable, salaryClass);
+          const headingClass = columnTable.id.startsWith("soldier") ? "rank-heading" : "";
+          return `<th class="${headingClass}" scope="col" title="${escapeHtml(heading)}">${escapeHtml(heading)}</th>`;
+        }).join("");
+        const rowHeaderTitle = group.id === "military-tariffs" ? "Tarif" : "Platový stupeň";
+        const bodyRows = columnTable.steps.map((step, rowIndex) => {
+          const cells = columnTable.classes.map((salaryClass, columnIndex) => {
+            const profession = tableProfessions.find((candidate) => (
+              candidate.salaryClass === salaryClass && candidate.stepIndex === rowIndex
+            ));
+            if (state.mode === "counts") {
+              const count = state.counts[columnTable.id][rowIndex][columnIndex];
+              const professionName = profession
+                ? `<span class="profession-cell-name${profession.compact ? " compact" : ""}">${escapeHtml(profession.name)}</span>`
+                : "";
+              const cellClass = profession ? "profession-target" : "";
+              return `<td class="${cellClass}" title="${profession ? escapeHtml(`Příklad povolání: ${profession.name}`) : ""}">${professionName}<input type="number" min="0" step="0.01" value="${escapeHtml(count)}"
+                data-count-table-id="${escapeHtml(columnTable.id)}" data-count-row="${rowIndex}" data-count-column="${columnIndex}"
+                aria-label="${escapeHtml(`${columnTable.name}, ${step}, ${salaryClass}: počet${profession ? `; příklad ${profession.name}` : ""}`)}"></td>`;
+            }
+            const original = columnTable.tariffs[rowIndex][columnIndex];
+            const adjusted = original + tariffShift();
+            const cellClasses = [repairedClass, profession ? "profession-target" : ""].filter(Boolean).join(" ");
+            const title = `${profession ? `${profession.name}: ` : ""}${state.repair ? `původní tarif ${formatMoney(original)}; ` : ""}měsíční tarif ${formatMoney(adjusted)}`;
+            const content = profession
+              ? `<span class="profession-cell-name${profession.compact ? " compact" : ""}">${escapeHtml(profession.name)}</span><strong class="profession-cell-value">${formatInteger(adjusted)}</strong>`
+              : formatInteger(adjusted);
+            return `<td class="${cellClasses}" title="${escapeHtml(title)}"${profession ? ` aria-label="${escapeHtml(`${profession.name}, ${step}: ${formatMoney(adjusted)}`)}"` : ""}>${content}</td>`;
+          }).join("");
+          const rowIndexLabel = group.id === "military-tariffs" ? "" : `<span class="row-index">${rowIndex + 1}.</span>`;
+          return `<tr><th class="row-label" scope="row" title="${escapeHtml(step)}">${rowIndexLabel}${escapeHtml(step)}</th>${cells}</tr>`;
+        }).join("");
+        const footerCells = columnTable.classes.map((salaryClass, columnIndex) => {
+          if (state.mode === "counts") {
+            const total = state.counts[columnTable.id].reduce((sum, row) => sum + row[columnIndex], 0);
+            return `<td data-footer-table-id="${escapeHtml(columnTable.id)}" data-footer-column="${columnIndex}">${formatNumber(total)}</td>`;
+          }
+          return `<td data-footer-table-id="${escapeHtml(columnTable.id)}" data-footer-column="${columnIndex}" title="Roční tarifní náklad: ${escapeHtml(groupSectionName(columnTable))}, ${escapeHtml(columnHeaderText(columnTable, salaryClass))}">${formatCellCost(columnAnnualCost(columnTable, columnIndex))}</td>`;
+        }).join("");
+        return `<section class="matrix-subtable">
+          ${showHeading ? `<h3 class="matrix-subtable-title">${escapeHtml(groupSectionName(columnTable))}</h3>` : ""}
+          <table class="salary-table ${group.id === "military-tariffs" ? "military-group" : ""}">
+            ${columnSizing}
+            <thead><tr><th class="row-label" scope="col">${rowHeaderTitle}</th>${headerCells}</tr></thead>
+            <tbody>${bodyRows}</tbody>
+            <tfoot><tr><th class="row-label" scope="row">${state.mode === "counts" ? "Třída celkem" : "Roční náklad"}</th>${footerCells}</tr></tfoot>
+          </table>
+        </section>`;
+      };
+
+      document.getElementById("matrixViewport").innerHTML = `<div class="${tables.length > 1 ? "matrix-stack" : ""}">${tables.map(
+        (columnTable) => renderSingleMatrix(columnTable, tables.length > 1)
+      ).join("")}</div>`;
+
+      document.querySelectorAll("[data-count-row]").forEach((input) => {
+        input.addEventListener("input", () => {
+          const rowIndex = Number(input.dataset.countRow);
+          const columnIndex = Number(input.dataset.countColumn);
+          const tableId = input.dataset.countTableId;
+          const parsed = Number(String(input.value).replace(",", "."));
+          state.counts[tableId][rowIndex][columnIndex] = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+          renderOverview();
+          renderSelector();
+          renderFiscal();
+          refreshMatrixFooter();
+        });
+      });
+    }
+
+    function refreshMatrixFooter() {
+      const footerCells = document.querySelectorAll(".salary-table tfoot td");
+      footerCells.forEach((cell) => {
+        const table = TABLES.find((candidate) => candidate.id === cell.dataset.footerTableId);
+        const columnIndex = Number(cell.dataset.footerColumn);
+        const value = state.mode === "counts"
+          ? state.counts[table.id].reduce((sum, row) => sum + row[columnIndex], 0)
+          : columnAnnualCost(table, columnIndex);
+        cell.textContent = state.mode === "counts" ? formatNumber(value) : formatCellCost(value);
+      });
+      const employees = selectedTables().reduce((total, table) => total + calculateTable(table).employees, 0);
+      document.getElementById("selectedEmployees").textContent = formatNumber(employees);
+    }
+
+    function policyAnnualIncrease() {
+      return TABLES.reduce((total, table) => {
+        return total + calculateTable(table).annual - calculateTable(table, 0).annual;
+      }, 0);
+    }
+
+    function estimatePrivateWageEffect() {
+      const target = Math.max(WAGE_SPHERE.baselineMinimum, state.minimumWage);
+      let affectedShare = 0;
+      let monthlyGapIntegral = 0;
+
+      for (let index = 0; index < WAGE_SPHERE.quantiles.length - 1; index += 1) {
+        const lower = WAGE_SPHERE.quantiles[index];
+        const upper = WAGE_SPHERE.quantiles[index + 1];
+        if (target <= lower.wage) break;
+
+        const segmentShare = upper.share - lower.share;
+        if (target >= upper.wage) {
+          affectedShare += segmentShare;
+          monthlyGapIntegral += segmentShare * (target - (lower.wage + upper.wage) / 2);
+          continue;
+        }
+
+        const coveredPart = (target - lower.wage) / (upper.wage - lower.wage);
+        const coveredShare = segmentShare * coveredPart;
+        affectedShare += coveredShare;
+        monthlyGapIntegral += coveredShare * (target - lower.wage) / 2;
+        break;
+      }
+
+      const intensity = state.repair ? state.privateWageEffect : 0;
+      const grossMonthly = WAGE_SPHERE.employees * monthlyGapIntegral * intensity;
+      return {
+        affectedShare,
+        affectedWorkers: intensity > 0 ? WAGE_SPHERE.employees * affectedShare : 0,
+        averageRaiseAffected: affectedShare > 0 ? monthlyGapIntegral / affectedShare * intensity : 0,
+        grossMonthly,
+        grossAnnual: grossMonthly * 12
+      };
+    }
+
+    function calculateFiscalMetrics(gross, includeEmployerContributions = false) {
+      const incomeTax = gross * MODEL_RATES.incomeTax;
+      const social = gross * MODEL_RATES.employeeSocial;
+      const health = gross * MODEL_RATES.employeeHealth;
+      const employerSocial = includeEmployerContributions ? gross * MODEL_RATES.employerSocial : 0;
+      const employerHealth = includeEmployerContributions ? gross * MODEL_RATES.employerHealth : 0;
+      const employer = employerSocial + employerHealth;
+      const employeeDirect = incomeTax + social + health;
+      const direct = employeeDirect + employer;
+      const disposable = gross - employeeDirect;
+      const consumption = disposable * state.consumptionRate;
+      const vat = consumption * MODEL_RATES.effectiveVat;
+      const excise = consumption * MODEL_RATES.effectiveExcise;
+      const indirect = vat + excise;
+      const totalRevenue = direct + indirect;
+
+      return {
+        gross,
+        incomeTax,
+        social,
+        health,
+        employerSocial,
+        employerHealth,
+        employer,
+        direct,
+        disposable,
+        consumption,
+        vat,
+        excise,
+        indirect,
+        totalRevenue
+      };
+    }
+
+    function fiscalScenario() {
+      const publicGross = policyAnnualIncrease();
+      const privateWages = estimatePrivateWageEffect();
+      const publicFiscal = calculateFiscalMetrics(publicGross);
+      const privateFiscal = calculateFiscalMetrics(privateWages.grossAnnual, true);
+      const totalRevenue = publicFiscal.totalRevenue + privateFiscal.totalRevenue;
+      return {
+        publicGross,
+        privateWages,
+        publicFiscal,
+        privateFiscal,
+        totalRevenue,
+        netBudgetImpact: publicGross - totalRevenue,
+        gdpImpact: (publicGross + privateWages.grossAnnual)
+          * MODEL_RATES.cnbCompensationMultiplier
+          * (state.consumptionRate / MODEL_RATES.baselineConsumptionRate)
+      };
+    }
+
+    function renderFiscal() {
+      const scenario = fiscalScenario();
+      const { publicFiscal, privateFiscal, privateWages } = scenario;
+      const combined = (field) => publicFiscal[field] + privateFiscal[field];
+
+      const values = {
+        grossIncrease: combined("gross"),
+        directRevenue: combined("direct"),
+        disposableIncrease: combined("disposable"),
+        consumptionIncrease: combined("consumption"),
+        indirectRevenue: combined("indirect"),
+        incomeTaxRevenue: combined("incomeTax"),
+        socialRevenue: combined("social"),
+        healthRevenue: combined("health"),
+        employerRevenue: combined("employer"),
+        vatRevenue: combined("vat"),
+        exciseRevenue: combined("excise"),
+        fiscalRevenueTotal: scenario.totalRevenue,
+        privateGrossIncrease: privateWages.grossAnnual,
+        privateRevenue: privateFiscal.totalRevenue
+      };
+
+      Object.entries(values).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        element.textContent = formatSignedCompactMoney(value);
+        element.dataset.value = String(Math.round(value));
+      });
+
+      document.getElementById("fiscalReturnRate").textContent = `z toho soukromé mzdy ${formatSignedCompactMoney(privateFiscal.totalRevenue)}`;
+      document.getElementById("consumptionRateOutput").textContent = `${formatInteger(state.consumptionRate * 100)} %`;
+      document.getElementById("privateWageEffectOutput").textContent = `${formatInteger(state.privateWageEffect * 100)} %`;
+      document.getElementById("privateAffectedWorkers").textContent = `${formatInteger(privateWages.affectedWorkers)} osob`;
+      document.getElementById("privateAverageRaise").textContent = `${formatMoney(privateWages.averageRaiseAffected)}/měs.`;
+      document.getElementById("privateWageEffect").disabled = !state.repair;
+      document.getElementById("privateEffectControl").classList.toggle("disabled", !state.repair);
+
+    }
+
+    function renderSources() {
+      document.getElementById("sourceList").innerHTML = DATA.sources.map((source, index) => `
+        <li>
+          <span class="reference-index">[${String(index + 1).padStart(2, "0")}]</span>
+          <p><strong>${escapeHtml(source.title)}.</strong> ${escapeHtml(source.note)} <span>[online; cit. 8. 8. 2026].</span>${sourceAnchor(source.url, "Dostupné z")}</p>
+        </li>
+      `).join("");
+    }
+
+    function renderAll() {
+      renderOverview();
+      renderSelector();
+      renderMatrix();
+      renderFiscal();
+    }
+
+    document.getElementById("repairButton").addEventListener("click", () => {
+      state.repair = !state.repair;
+      renderAll();
+    });
+
+    document.getElementById("minimumWage").addEventListener("input", (event) => {
+      state.minimumWage = Number(event.target.value);
+      renderAll();
+    });
+
+    document.getElementById("consumptionRate").addEventListener("input", (event) => {
+      state.consumptionRate = Number(event.target.value) / 100;
+      renderOverview();
+      renderFiscal();
+    });
+
+    document.getElementById("privateWageEffect").addEventListener("input", (event) => {
+      state.privateWageEffect = Number(event.target.value) / 100;
+      renderOverview();
+      renderFiscal();
+    });
+
+    document.getElementById("tariffMode").addEventListener("click", () => {
+      state.mode = "tariffs";
+      renderMatrix();
+    });
+
+    document.getElementById("countMode").addEventListener("click", () => {
+      state.mode = "counts";
+      renderMatrix();
+    });
+
+    document.getElementById("resetCounts").addEventListener("click", () => {
+      state.counts = cloneCounts(ORIGINAL_COUNTS);
+      renderAll();
+    });
+
+    renderSources();
+    renderAll();
+  </script>
+</body>
+</html>
