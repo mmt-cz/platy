@@ -306,6 +306,11 @@
       background: var(--navy);
     }
 
+    .mode-control button.toggle-active {
+      color: #143d2f;
+      background: var(--green-soft);
+    }
+
     .matrix-count {
       min-width: 126px;
       text-align: right;
@@ -899,6 +904,7 @@
             <div class="mode-control" role="group" aria-label="Zobrazená data">
               <button id="tariffMode" type="button" class="active" aria-pressed="true">Tarify · Kč/měs.</button>
               <button id="countMode" type="button" aria-pressed="false">Počty · upravitelné</button>
+              <button id="topUpDisplayButton" type="button" role="switch" aria-checked="false" hidden>Ukázat dorovnání</button>
             </div>
             <div class="matrix-count"><span>Počet</span><strong id="selectedEmployees">—</strong></div>
           </header>
@@ -979,7 +985,7 @@
       <details class="method-note">
         <summary>Metodika a literatura</summary>
         <div class="method-content">
-          <p>Model počítá roční tarifní ekvivalent jako počet v buňce × měsíční částka × 12; nezahrnuje příplatky ani odměny. Výsledky jsou změnou proti současnému stavu při minimální mzdě 22 400 Kč. Bez opravy tabulek se tarify pod zvolenou minimální mzdou dorovnají pouze do této hranice; výchozí náklad už obsahuje dnešní dorovnání do 22 400 Kč. Při zapnuté opravě se každý tarif posune o stejnou částku tak, aby nejnižší tarif odpovídal zvolené minimální mzdě a rozestupy zůstaly zachovány. U zaměstnanců odměňovaných platem jde o zjednodušený tarifní ekvivalent: skutečný doplatek se posuzuje vůči celému započitatelnému platu a příslušné úrovni zaručeného platu. Soukromý efekt vychází z 3,010 mil. zaměstnanců mzdové sféry ISPV 2025 a po částech lineárně interpolované distribuce; počítá pouze přírůstek nad dnešní hranici 22 400 Kč. Mzdová sféra je zde aproximací soukromého sektoru — statisticky jde o zaměstnance odměňované mzdou, nikoli o přesné institucionální členění. Ovladač 0–100 % násobí dopočtený mzdový rozdíl, nejde o prognózu zaměstnanosti. První čtyři tarifní stupnice zahrnují i samosprávy, příspěvkové organizace a část zdravotnictví; civilní a státní zaměstnanci MO se proto nepřičítají znovu. Odhad HDP používá multiplikátor ČNB 0,6 pro náhrady zaměstnancům při výchozí 80% míře spotřeby. Změna míry spotřeby tento odhad poměrně škáluje; jde o citlivostní předpoklad modelu, nikoli o samostatný odhad ČNB.</p>
+          <p>Model počítá roční tarifní ekvivalent jako počet v buňce × měsíční částka × 12; nezahrnuje příplatky ani odměny. Výsledky jsou změnou proti současnému stavu při minimální mzdě 22 400 Kč. Bez opravy tabulek se tarify pod zvolenou minimální mzdou dorovnají pouze do této hranice; výchozí náklad už obsahuje dnešní dorovnání do 22 400 Kč. Přepínač „Ukázat dorovnání“ mění jen zobrazení buněk, nikoli výpočet. Při zapnuté opravě se každý tarif posune o stejnou částku tak, aby nejnižší tarif odpovídal zvolené minimální mzdě a rozestupy zůstaly zachovány. U zaměstnanců odměňovaných platem jde o zjednodušený tarifní ekvivalent: skutečný doplatek se posuzuje vůči celému započitatelnému platu a příslušné úrovni zaručeného platu. Soukromý efekt vychází z 3,010 mil. zaměstnanců mzdové sféry ISPV 2025 a po částech lineárně interpolované distribuce; počítá pouze přírůstek nad dnešní hranici 22 400 Kč. Mzdová sféra je zde aproximací soukromého sektoru — statisticky jde o zaměstnance odměňované mzdou, nikoli o přesné institucionální členění. Ovladač 0–100 % násobí dopočtený mzdový rozdíl, nejde o prognózu zaměstnanosti. První čtyři tarifní stupnice zahrnují i samosprávy, příspěvkové organizace a část zdravotnictví; civilní a státní zaměstnanci MO se proto nepřičítají znovu. Odhad HDP používá multiplikátor ČNB 0,6 pro náhrady zaměstnancům při výchozí 80% míře spotřeby. Změna míry spotřeby tento odhad poměrně škáluje; jde o citlivostní předpoklad modelu, nikoli o samostatný odhad ČNB.</p>
           <h3>Literatura, datové a právní zdroje</h3>
           <p class="method-source-note">Akademický soupis použitých podkladů; stav ověření 8. srpna 2026.</p>
           <ol id="sourceList" class="source-list"></ol>
@@ -1067,6 +1073,7 @@
       selectedId: TABLE_GROUPS[0].id,
       mode: "tariffs",
       repair: true,
+      showMinimumTopUp: false,
       minimumWage: 22400,
       consumptionRate: 0.80,
       privateWageEffect: 0.30,
@@ -1304,6 +1311,10 @@
       document.getElementById("countMode").classList.toggle("active", state.mode === "counts");
       document.getElementById("tariffMode").setAttribute("aria-pressed", String(state.mode === "tariffs"));
       document.getElementById("countMode").setAttribute("aria-pressed", String(state.mode === "counts"));
+      const topUpDisplayButton = document.getElementById("topUpDisplayButton");
+      topUpDisplayButton.hidden = state.repair || state.mode !== "tariffs";
+      topUpDisplayButton.setAttribute("aria-checked", String(state.showMinimumTopUp));
+      topUpDisplayButton.classList.toggle("toggle-active", state.showMinimumTopUp);
 
       const renderSingleMatrix = (columnTable, showHeading) => {
         const tableProfessions = PROFESSION_EXAMPLES.filter((profession) => profession.tableId === columnTable.id);
@@ -1341,14 +1352,14 @@
                 aria-label="${escapeHtml(`${columnTable.name}, ${step}, ${salaryClass}: počet${profession ? `; příklad ${profession.name}` : ""}`)}"></td>`;
             }
             const original = columnTable.tariffs[rowIndex][columnIndex];
-            const adjusted = scenarioTariff(original);
-            const wasAdjusted = adjusted !== original;
+            const displayedTariff = state.repair || state.showMinimumTopUp ? scenarioTariff(original) : original;
+            const wasAdjusted = displayedTariff !== original;
             const cellClasses = [wasAdjusted ? "adjusted" : "", profession ? "profession-target" : ""].filter(Boolean).join(" ");
-            const title = `${profession ? `${profession.name}: ` : ""}${wasAdjusted ? `původní tarif ${formatMoney(original)}; ` : ""}měsíční částka ${formatMoney(adjusted)}`;
+            const title = `${profession ? `${profession.name}: ` : ""}${wasAdjusted ? `původní tarif ${formatMoney(original)}; ` : ""}měsíční částka ${formatMoney(displayedTariff)}`;
             const content = profession
-              ? `<span class="profession-cell-name${profession.compact ? " compact" : ""}">${escapeHtml(profession.name)}</span><strong class="profession-cell-value">${formatInteger(adjusted)}</strong>`
-              : formatInteger(adjusted);
-            return `<td class="${cellClasses}" title="${escapeHtml(title)}"${profession ? ` aria-label="${escapeHtml(`${profession.name}, ${step}: ${formatMoney(adjusted)}`)}"` : ""}>${content}</td>`;
+              ? `<span class="profession-cell-name${profession.compact ? " compact" : ""}">${escapeHtml(profession.name)}</span><strong class="profession-cell-value">${formatInteger(displayedTariff)}</strong>`
+              : formatInteger(displayedTariff);
+            return `<td class="${cellClasses}" title="${escapeHtml(title)}"${profession ? ` aria-label="${escapeHtml(`${profession.name}, ${step}: ${formatMoney(displayedTariff)}`)}"` : ""}>${content}</td>`;
           }).join("");
           const rowIndexLabel = group.id === "military-tariffs" ? "" : `<span class="row-index">${rowIndex + 1}.</span>`;
           return `<tr><th class="row-label" scope="row" title="${escapeHtml(step)}">${rowIndexLabel}${escapeHtml(step)}</th>${cells}</tr>`;
@@ -1561,6 +1572,11 @@
     document.getElementById("repairButton").addEventListener("click", () => {
       state.repair = !state.repair;
       renderAll();
+    });
+
+    document.getElementById("topUpDisplayButton").addEventListener("click", () => {
+      state.showMinimumTopUp = !state.showMinimumTopUp;
+      renderMatrix();
     });
 
     document.getElementById("minimumWage").addEventListener("input", (event) => {
