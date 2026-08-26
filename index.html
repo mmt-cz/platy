@@ -647,8 +647,6 @@
 
     .consumption-control output,
     .private-effect-control output { color: var(--navy); font-family: var(--mono); font-size: 10px; text-align: right; }
-    .private-effect-control.disabled { opacity: .45; }
-
     .rate-chip {
       padding: 4px 6px;
       border: 1px solid #d1d8dc;
@@ -880,9 +878,9 @@
             </button>
           </div>
           <div>
-            <span class="field-label">Nejnižší tarif / minimální mzda</span>
+            <span id="minimumWageLabel" class="field-label">Minimální mzda / nejnižší tarif</span>
             <div class="slider-line">
-              <input id="minimumWage" type="range" min="10000" max="50000" step="100" value="22400" aria-label="Minimální mzda">
+              <input id="minimumWage" type="range" min="22400" max="50000" step="100" value="22400" aria-label="Minimální mzda / nejnižší tarif">
               <output id="minimumWageOutput" for="minimumWage">22 400 Kč</output>
             </div>
           </div>
@@ -981,7 +979,7 @@
       <details class="method-note">
         <summary>Metodika a literatura</summary>
         <div class="method-content">
-          <p>Model počítá roční tarifní náklad jako počet v buňce × měsíční tarif × 12; nezahrnuje příplatky ani odměny. Oprava zvedá každý tarif o stejnou částku směrem k nastavené minimální mzdě. Soukromý efekt vychází z 3,010 mil. zaměstnanců mzdové sféry ISPV 2025 a po částech lineárně interpolované distribuce; spodní úsek vede od minimální mzdy 2025 ve výši 20 800 Kč k prvnímu decilu 24 919 Kč. Mzdová sféra je zde aproximací soukromého sektoru — statisticky jde o zaměstnance odměňované mzdou, nikoli o přesné institucionální členění. Ovladač 0–100 % násobí dopočtený mzdový rozdíl, nejde o prognózu zaměstnanosti. První čtyři tarifní stupnice zahrnují i samosprávy, příspěvkové organizace a část zdravotnictví; civilní a státní zaměstnanci MO se proto nepřičítají znovu. Odhad HDP používá multiplikátor ČNB 0,6 pro náhrady zaměstnancům při výchozí 80% míře spotřeby. Změna míry spotřeby tento odhad poměrně škáluje; jde o citlivostní předpoklad modelu, nikoli o samostatný odhad ČNB.</p>
+          <p>Model počítá roční tarifní ekvivalent jako počet v buňce × měsíční částka × 12; nezahrnuje příplatky ani odměny. Výsledky jsou změnou proti současnému stavu při minimální mzdě 22 400 Kč. Bez opravy tabulek se tarify pod zvolenou minimální mzdou dorovnají pouze do této hranice; výchozí náklad už obsahuje dnešní dorovnání do 22 400 Kč. Při zapnuté opravě se každý tarif posune o stejnou částku tak, aby nejnižší tarif odpovídal zvolené minimální mzdě a rozestupy zůstaly zachovány. U zaměstnanců odměňovaných platem jde o zjednodušený tarifní ekvivalent: skutečný doplatek se posuzuje vůči celému započitatelnému platu a příslušné úrovni zaručeného platu. Soukromý efekt vychází z 3,010 mil. zaměstnanců mzdové sféry ISPV 2025 a po částech lineárně interpolované distribuce; počítá pouze přírůstek nad dnešní hranici 22 400 Kč. Mzdová sféra je zde aproximací soukromého sektoru — statisticky jde o zaměstnance odměňované mzdou, nikoli o přesné institucionální členění. Ovladač 0–100 % násobí dopočtený mzdový rozdíl, nejde o prognózu zaměstnanosti. První čtyři tarifní stupnice zahrnují i samosprávy, příspěvkové organizace a část zdravotnictví; civilní a státní zaměstnanci MO se proto nepřičítají znovu. Odhad HDP používá multiplikátor ČNB 0,6 pro náhrady zaměstnancům při výchozí 80% míře spotřeby. Změna míry spotřeby tento odhad poměrně škáluje; jde o citlivostní předpoklad modelu, nikoli o samostatný odhad ČNB.</p>
           <h3>Literatura, datové a právní zdroje</h3>
           <p class="method-source-note">Akademický soupis použitých podkladů; stav ověření 8. srpna 2026.</p>
           <ol id="sourceList" class="source-list"></ol>
@@ -1048,9 +1046,10 @@
       cnbCompensationMultiplier: 0.6,
       baselineConsumptionRate: 0.80
     };
+    const CURRENT_MINIMUM_WAGE = 22400;
     const WAGE_SPHERE = {
       employees: 3010187.5,
-      baselineMinimum: 20800,
+      baselineMinimum: CURRENT_MINIMUM_WAGE,
       quantiles: [
         { share: 0, wage: 20800 },
         { share: 0.10, wage: 24919.3679 },
@@ -1160,12 +1159,21 @@
       return state.repair ? Math.max(0, state.minimumWage - lowestTariff) : 0;
     }
 
-    function calculateTable(table, shift = tariffShift()) {
+    function baselineTariff(original) {
+      return Math.max(original, CURRENT_MINIMUM_WAGE);
+    }
+
+    function scenarioTariff(original) {
+      if (!state.repair) return Math.max(original, state.minimumWage);
+      return Math.max(original + tariffShift(), state.minimumWage);
+    }
+
+    function calculateTable(table, tariffResolver = scenarioTariff) {
       const counts = state.counts[table.id];
       let monthly = 0;
       for (let rowIndex = 0; rowIndex < table.tariffs.length; rowIndex += 1) {
         for (let columnIndex = 0; columnIndex < table.tariffs[rowIndex].length; columnIndex += 1) {
-          monthly += (table.tariffs[rowIndex][columnIndex] + shift) * counts[rowIndex][columnIndex];
+          monthly += tariffResolver(table.tariffs[rowIndex][columnIndex]) * counts[rowIndex][columnIndex];
         }
       }
       return {
@@ -1239,6 +1247,9 @@
 
       const repairButton = document.getElementById("repairButton");
       repairButton.setAttribute("aria-checked", String(state.repair));
+      const minimumWageLabel = state.repair ? "Minimální mzda / nejnižší tarif" : "Minimální mzda";
+      document.getElementById("minimumWageLabel").textContent = minimumWageLabel;
+      document.getElementById("minimumWage").setAttribute("aria-label", minimumWageLabel);
       document.getElementById("minimumWageOutput").textContent = formatMoney(state.minimumWage);
     }
 
@@ -1266,7 +1277,7 @@
 
     function columnAnnualCost(table, columnIndex) {
       return table.tariffs.reduce((total, row, rowIndex) => {
-        return total + (row[columnIndex] + tariffShift()) * state.counts[table.id][rowIndex][columnIndex] * 12;
+        return total + scenarioTariff(row[columnIndex]) * state.counts[table.id][rowIndex][columnIndex] * 12;
       }, 0);
     }
 
@@ -1274,7 +1285,6 @@
       const group = selectedGroup();
       const tables = selectedTables();
       const table = tables[0];
-      const repairedClass = state.repair ? "adjusted" : "";
       const uniqueValues = (values) => [...new Set(values.filter(Boolean))];
       const sourceLinks = (key, genericLabel) => {
         const urls = uniqueValues(tables.map((candidate) => candidate[key]));
@@ -1331,9 +1341,10 @@
                 aria-label="${escapeHtml(`${columnTable.name}, ${step}, ${salaryClass}: počet${profession ? `; příklad ${profession.name}` : ""}`)}"></td>`;
             }
             const original = columnTable.tariffs[rowIndex][columnIndex];
-            const adjusted = original + tariffShift();
-            const cellClasses = [repairedClass, profession ? "profession-target" : ""].filter(Boolean).join(" ");
-            const title = `${profession ? `${profession.name}: ` : ""}${state.repair ? `původní tarif ${formatMoney(original)}; ` : ""}měsíční tarif ${formatMoney(adjusted)}`;
+            const adjusted = scenarioTariff(original);
+            const wasAdjusted = adjusted !== original;
+            const cellClasses = [wasAdjusted ? "adjusted" : "", profession ? "profession-target" : ""].filter(Boolean).join(" ");
+            const title = `${profession ? `${profession.name}: ` : ""}${wasAdjusted ? `původní tarif ${formatMoney(original)}; ` : ""}měsíční částka ${formatMoney(adjusted)}`;
             const content = profession
               ? `<span class="profession-cell-name${profession.compact ? " compact" : ""}">${escapeHtml(profession.name)}</span><strong class="profession-cell-value">${formatInteger(adjusted)}</strong>`
               : formatInteger(adjusted);
@@ -1395,12 +1406,11 @@
 
     function policyAnnualIncrease() {
       return TABLES.reduce((total, table) => {
-        return total + calculateTable(table).annual - calculateTable(table, 0).annual;
+        return total + calculateTable(table).annual - calculateTable(table, baselineTariff).annual;
       }, 0);
     }
 
-    function estimatePrivateWageEffect() {
-      const target = Math.max(WAGE_SPHERE.baselineMinimum, state.minimumWage);
+    function wageGapAt(target) {
       let affectedShare = 0;
       let monthlyGapIntegral = 0;
 
@@ -1423,7 +1433,16 @@
         break;
       }
 
-      const intensity = state.repair ? state.privateWageEffect : 0;
+      return { affectedShare, monthlyGapIntegral };
+    }
+
+    function estimatePrivateWageEffect() {
+      const target = Math.max(WAGE_SPHERE.baselineMinimum, state.minimumWage);
+      const baseline = wageGapAt(WAGE_SPHERE.baselineMinimum);
+      const scenario = wageGapAt(target);
+      const affectedShare = target > WAGE_SPHERE.baselineMinimum ? scenario.affectedShare : 0;
+      const monthlyGapIntegral = Math.max(0, scenario.monthlyGapIntegral - baseline.monthlyGapIntegral);
+      const intensity = state.privateWageEffect;
       const grossMonthly = WAGE_SPHERE.employees * monthlyGapIntegral * intensity;
       return {
         affectedShare,
@@ -1520,8 +1539,6 @@
       document.getElementById("privateWageEffectOutput").textContent = `${formatInteger(state.privateWageEffect * 100)} %`;
       document.getElementById("privateAffectedWorkers").textContent = `${formatInteger(privateWages.affectedWorkers)} osob`;
       document.getElementById("privateAverageRaise").textContent = `${formatMoney(privateWages.averageRaiseAffected)}/měs.`;
-      document.getElementById("privateWageEffect").disabled = !state.repair;
-      document.getElementById("privateEffectControl").classList.toggle("disabled", !state.repair);
 
     }
 
